@@ -112,7 +112,7 @@ export default function SummaryDialog({ open, onClose, onSaved, houseId, data })
               {survey?.remarks && (
                 <Box sx={{ mt: 0.75 }}>
                   <Typography sx={{ fontSize: 12, color: colors.textMuted }}>टिप्पणी:</Typography>
-                  <Typography sx={{ fontSize: 13, fontStyle: 'italic' }}>"{survey.remarks}"</Typography>
+                  <Typography sx={{ fontSize: 13, fontStyle: 'italic' }}>&ldquo;{survey.remarks}&rdquo;</Typography>
                 </Box>
               )}
             </Paper>

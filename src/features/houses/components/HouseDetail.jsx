@@ -3,70 +3,336 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Alert from '@mui/material/Alert';
-import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import Divider from '@mui/material/Divider';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
-import List from '@mui/material/List';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import Paper from '@mui/material/Paper';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
 import Typography from '@mui/material/Typography';
-import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import CallOutlinedIcon from '@mui/icons-material/CallOutlined';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined';
-import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
-import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
-import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
+import HowToVoteOutlinedIcon from '@mui/icons-material/HowToVoteOutlined';
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
+import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined';
 import SummarizeOutlinedIcon from '@mui/icons-material/SummarizeOutlined';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import AppChrome from '@shared/layouts/AppChrome';
 import { colors } from '@shared/theme/colors';
-import { fetchHouse, deleteHouse, deleteMember } from '../api';
-import { STATUS_LABELS, genderLabel } from '../constants';
-import HouseInfoDialog    from './dialogs/HouseInfoDialog';
-import MemberDialog       from './dialogs/MemberDialog';
-import InfluencersDialog  from './dialogs/InfluencersDialog';
-import SurveyDialog       from './dialogs/SurveyDialog';
-import SummaryDialog      from './dialogs/SummaryDialog';
+import { fetchHouse, deleteHouse, fetchNeighborHouses } from '../api';
+import {
+  STATUS_LABELS,
+  POLITICAL_PARTY_OPTIONS,
+  DEVELOPMENT_WORK_OPTIONS,
+  CM_SATISFACTION_OPTIONS,
+  genderLabel,
+} from '../constants';
+import HouseInfoDialog   from './dialogs/HouseInfoDialog';
+import MemberDialog      from './dialogs/MemberDialog';
+import InfluencersDialog from './dialogs/InfluencersDialog';
+import SurveyDialog      from './dialogs/SurveyDialog';
+import SummaryDialog     from './dialogs/SummaryDialog';
 
+/* ─── Status chip colours ──────────────────────────────────────── */
 const STATUS_COLOR = {
-  done:    { bg: '#e8f5e9', fg: '#2e7d32' },
-  partial: { bg: '#fff8e1', fg: '#b26a00' },
-  pending: { bg: '#f1f1f1', fg: colors.textMuted },
+  done:    { bg: '#2e7d32', fg: '#fff' },
+  partial: { bg: '#b26a00', fg: '#fff' },
+  pending: { bg: '#757575', fg: '#fff' },
 };
+
+/* ─── Helpers ──────────────────────────────────────────────────── */
+function parseAreaId(rawId) {
+  const parts = String(rawId ?? '').split('_');
+  return { ward: parts[1] ? Number(parts[1]) : null, bhag: parts[2] ? Number(parts[2]) : null };
+}
+
+function parseWorkers(str) {
+  if (!str || !String(str).trim()) return [];
+  return String(str).split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+function parseDevWorks(raw) {
+  if (Array.isArray(raw)) return raw;
+  try { return JSON.parse(raw || '[]'); } catch { return []; }
+}
+
+/* ─── Table shared styles ──────────────────────────────────────── */
+const TH = {
+  background: '#f7f7f7',
+  borderBottom: '1.5px solid #ddd',
+  padding: '5px 7px',
+  textAlign: 'left',
+  fontWeight: 700,
+  fontSize: 11,
+  color: '#555',
+  verticalAlign: 'bottom',
+  lineHeight: 1.3,
+  whiteSpace: 'pre-line',
+};
+const TD = {
+  borderBottom: '1px solid #f0f0f0',
+  padding: '5px 7px',
+  verticalAlign: 'middle',
+  fontSize: 12,
+  color: '#212529',
+};
+
+/* ─── Sub-components ───────────────────────────────────────────── */
+
+function InfoItem({ icon, text }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.35, mr: 1.5 }}>
+      {icon && <Box sx={{ color: colors.orange, display: 'flex', alignItems: 'center' }}>{icon}</Box>}
+      <Typography sx={{ fontSize: 11.5, color: colors.text }}>{text}</Typography>
+    </Box>
+  );
+}
+
+function SectionHead({ number, title, onEdit }) {
+  return (
+    <Box sx={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+      px: 1.5, py: 1, bgcolor: colors.orangeTint,
+      borderBottom: `1px solid ${colors.border}`,
+    }}>
+      <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: colors.orange, flex: 1, pr: 1, lineHeight: 1.4 }}>
+        {number}. {title}
+      </Typography>
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={<EditOutlinedIcon sx={{ fontSize: 13 }} />}
+        onClick={onEdit}
+        sx={{
+          fontSize: 11, textTransform: 'none', py: 0.25, px: 1, flexShrink: 0,
+          borderColor: colors.orange, color: colors.orange, mt: 0.2,
+          '&:hover': { borderColor: colors.orangeDark, bgcolor: colors.orangeTint },
+        }}
+      >
+        संपादित करें
+      </Button>
+    </Box>
+  );
+}
+
+function SectionBox({ children }) {
+  return (
+    <Box sx={{ mb: 1, border: `1px solid ${colors.border}`, bgcolor: '#fff', overflow: 'hidden' }}>
+      {children}
+    </Box>
+  );
+}
+
+/* ── Member table ── */
+function MemberTable({ members, caste }) {
+  return (
+    <Box sx={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', minWidth: 580, borderCollapse: 'collapse' }}>
+        <thead>
+          <tr>
+            <th style={{ ...TH, width: 30, textAlign: 'center' }}>{'क्र.\nसं.'}</th>
+            <th style={TH}>नाम (आयु / लिंग)</th>
+            <th style={TH}>{'पिता / पति\nका नाम'}</th>
+            <th style={TH}>जाति</th>
+            <th style={TH}>मोबाइल</th>
+            <th style={TH}>{'नौकरी / व्यवसाय का पूर्ण विवरण\n(पद बाहर रहते हैं तो पता)'}</th>
+            <th style={TH}>{'विशेष पारिवारिक विवरण\n(मतदाता श्रेणी)'}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {members.map((m, i) => (
+            <tr key={m.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+              <td style={{ ...TD, textAlign: 'center' }}>{i + 1}</td>
+              <td style={TD}>
+                <span style={{ fontWeight: 600 }}>{m.name}</span>
+                <br />
+                <span style={{ fontSize: 10.5, color: '#888' }}>
+                  ({genderLabel(m.gender)} / {m.age ?? '—'})
+                </span>
+              </td>
+              <td style={TD}>{m.relative_name || '—'}</td>
+              <td style={TD}>{caste || '—'}</td>
+              <td style={{ ...TD, whiteSpace: 'nowrap' }}>{m.mobile || '—'}</td>
+              <td style={TD}>{m.occupation || '—'}</td>
+              <td style={{ ...TD, fontWeight: m.is_head === 1 ? 700 : 400, color: m.is_head === 1 ? colors.orange : undefined }}>
+                {m.is_head === 1 ? 'HEAD' : 'अधिवासित'}
+              </td>
+            </tr>
+          ))}
+          {members.length === 0 && (
+            <tr>
+              <td colSpan={7} style={{ ...TD, textAlign: 'center', color: '#999', padding: '12px 8px' }}>
+                कोई सदस्य नहीं
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </Box>
+  );
+}
+
+/* ── Influencer table ── */
+function InfluencerTable({ influencers }) {
+  if (!influencers.length) {
+    return (
+      <Typography sx={{ fontSize: 12.5, color: colors.textMuted, px: 1.5, py: 1.5, textAlign: 'center', fontStyle: 'italic' }}>
+        कोई प्रभावशाली व्यक्ति नहीं जोड़ा गया
+      </Typography>
+    );
+  }
+  return (
+    <Box sx={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', minWidth: 380, borderCollapse: 'collapse' }}>
+        <thead>
+          <tr>
+            <th style={{ ...TH, width: 30, textAlign: 'center' }}>{'क्र.\nसं.'}</th>
+            <th style={TH}>व्यक्ति का नाम</th>
+            <th style={TH}>पार्टी / विचारधारा</th>
+            <th style={TH}>विशेष विवरण</th>
+            <th style={TH}>{'मोबाइल नंबर\n(पद उपलब्ध हो)'}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {influencers.map((inf, i) => (
+            <tr key={inf.id ?? i} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+              <td style={{ ...TD, textAlign: 'center' }}>{i + 1}</td>
+              <td style={{ ...TD, fontWeight: 600 }}>{inf.name || '—'}</td>
+              <td style={TD}>{inf.party || '—'}</td>
+              <td style={TD}>{inf.detail || '—'}</td>
+              <td style={{ ...TD, whiteSpace: 'nowrap' }}>{inf.mobile || '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Box>
+  );
+}
+
+/* ── Workers numbered list ── */
+function WorkersList({ workers }) {
+  if (!workers.length) {
+    return (
+      <Typography sx={{ fontSize: 12, color: colors.textMuted, px: 1.5, py: 1, fontStyle: 'italic' }}>
+        कोई जानकारी नहीं
+      </Typography>
+    );
+  }
+  return (
+    <Box sx={{ px: 1.5, py: 1, display: 'flex', flexWrap: 'wrap' }}>
+      {workers.map((w, i) => (
+        <Typography key={i} sx={{ fontSize: 12.5, mr: 2, mb: 0.25 }}>
+          {i + 1}. {w}
+        </Typography>
+      ))}
+    </Box>
+  );
+}
+
+/* ── Survey read-only display ── */
+function SurveyDisplay({ survey, devWorks }) {
+  const party = survey?.political_party ?? '';
+  const cm    = survey?.cm_satisfaction ?? '';
+
+  return (
+    <Box sx={{ p: 1.25, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
+      {/* Column 1: Political party */}
+      <Box>
+        <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: colors.text, mb: 0.5, lineHeight: 1.35 }}>
+          परिवार किस पार्टी को सपोर्ट करता है
+        </Typography>
+        <RadioGroup value={party} sx={{ pointerEvents: 'none' }}>
+          {POLITICAL_PARTY_OPTIONS.map((o) => (
+            <FormControlLabel
+              key={o.value}
+              value={o.value}
+              control={<Radio size="small" sx={{ py: 0.2 }} />}
+              label={<Typography sx={{ fontSize: 10.5 }}>{o.label}</Typography>}
+              sx={{ mx: 0, mb: 0 }}
+            />
+          ))}
+        </RadioGroup>
+      </Box>
+
+      {/* Column 2: Development works */}
+      <Box>
+        <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: colors.text, mb: 0.5, lineHeight: 1.35 }}>
+          विकास कार्य के लिए माननीय मुख्यमंत्री जी के कार्यों के प्रति परिवार की संतुति
+        </Typography>
+        <Box sx={{ pointerEvents: 'none' }}>
+          {DEVELOPMENT_WORK_OPTIONS.map((o) => (
+            <FormControlLabel
+              key={o.value}
+              control={<Checkbox size="small" checked={devWorks.includes(o.value)} sx={{ py: 0.2 }} />}
+              label={<Typography sx={{ fontSize: 10.5 }}>{o.label}</Typography>}
+              sx={{ mx: 0, display: 'flex', mb: 0 }}
+            />
+          ))}
+        </Box>
+      </Box>
+
+      {/* Column 3: CM satisfaction */}
+      <Box>
+        <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: colors.text, mb: 0.5, lineHeight: 1.35 }}>
+          मेरा परिवार माननीय मुख्यमंत्री जी के कार्यों के प्रति संतुति
+        </Typography>
+        <RadioGroup value={cm} sx={{ pointerEvents: 'none' }}>
+          {CM_SATISFACTION_OPTIONS.map((o) => (
+            <FormControlLabel
+              key={o.value}
+              value={o.value}
+              control={<Radio size="small" sx={{ py: 0.2 }} />}
+              label={<Typography sx={{ fontSize: 10.5 }}>{o.label}</Typography>}
+              sx={{ mx: 0, mb: 0 }}
+            />
+          ))}
+        </RadioGroup>
+      </Box>
+    </Box>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/*  Main component                                                  */
+/* ═══════════════════════════════════════════════════════════════ */
 
 export default function HouseDetail({ houseId }) {
   const router = useRouter();
-  const [data, setData]                   = useState(null);
-  const [error, setError]                 = useState(null);
-  const [membersExpanded, setMembersExpanded] = useState(false);
+  const [data, setData]           = useState(null);
+  const [error, setError]         = useState(null);
+  const [neighbors, setNeighbors] = useState({ prev: null, next: null });
 
-  // Dialogs
-  const [houseInfoOpen, setHouseInfoOpen]         = useState(false);
-  const [memberDialogMember, setMemberDialogMember] = useState(undefined); // undefined=closed, null=add, obj=edit
-  const [influencersOpen, setInfluencersOpen]     = useState(false);
-  const [surveyOpen, setSurveyOpen]               = useState(false);
-  const [summaryOpen, setSummaryOpen]             = useState(false);
+  /* dialog states */
+  const [houseInfoOpen,      setHouseInfoOpen]      = useState(false);
+  const [memberDialogMember, setMemberDialogMember] = useState(undefined); // undefined=closed null=add obj=edit
+  const [influencersOpen,    setInfluencersOpen]    = useState(false);
+  const [surveyOpen,         setSurveyOpen]         = useState(false);
+  const [summaryOpen,        setSummaryOpen]        = useState(false);
+  const [notesOpen,          setNotesOpen]          = useState(false);
 
-  // Delete confirmations
-  const [deleteHouseConfirm, setDeleteHouseConfirm] = useState(false);
-  const [deletingHouse, setDeletingHouse]           = useState(false);
-  const [deleteHouseError, setDeleteHouseError]     = useState(null);
-  const [deleteMemberConfirmId, setDeleteMemberConfirmId] = useState(null);
-  const [deletingMemberId, setDeletingMemberId]     = useState(null);
+  /* delete state */
+  const [deleteConfirm,  setDeleteConfirm]  = useState(false);
+  const [deletingHouse,  setDeletingHouse]  = useState(false);
+  const [deleteHouseErr, setDeleteHouseErr] = useState(null);
 
+  /* more-menu anchor */
+  const [moreAnchor, setMoreAnchor] = useState(null);
+
+  /* ── load ── */
   const load = useCallback(() => {
     fetchHouse(houseId)
       .then((d) => { setData(d); setError(null); })
@@ -75,318 +341,228 @@ export default function HouseDetail({ houseId }) {
 
   useEffect(load, [load]);
 
-  const house         = data?.house;
-  const houseLabel    = house?.house_no ?? house?.house_no_raw ?? '—';
-  const status        = STATUS_COLOR[house?.survey_status] ?? STATUS_COLOR.pending;
-  const activeMembers = (data?.members ?? []).filter((m) => !m.is_deleted);
-  const mobile        = house?.mobile;
+  useEffect(() => {
+    fetchNeighborHouses(houseId)
+      .then(setNeighbors)
+      .catch(() => {});
+  }, [houseId]);
 
-  // Members shown: first 3 always; all when expanded
-  const visibleMembers = membersExpanded ? activeMembers : activeMembers.slice(0, 3);
-  const hasMore        = activeMembers.length > 3;
+  /* ── derived ── */
+  const house          = data?.house;
+  const houseLabel     = house?.house_no ?? house?.house_no_raw ?? '—';
+  const statusKey      = house?.survey_status ?? 'pending';
+  const statusColor    = STATUS_COLOR[statusKey] ?? STATUS_COLOR.pending;
+  const statusLabel    = STATUS_LABELS[statusKey] ?? 'लंबित';
+  const activeMembers  = (data?.members ?? []).filter((m) => !m.is_deleted);
+  const influencers    = data?.influencers ?? [];
+  const survey         = data?.survey ?? {};
+  const mobile         = house?.mobile;
+  const bjpWorkers     = parseWorkers(survey?.colony_workers);
+  const cngrWorkers    = parseWorkers(survey?.block_workers);
+  const devWorks       = parseDevWorks(survey?.development_works);
+  const { ward }       = parseAreaId(house?.area_id);
+  const areaLabel      = [ward ? `वार्ड ${ward}` : null, house?.area].filter(Boolean).join(', ');
 
+  /* ── delete handler ── */
   async function handleDeleteHouse() {
     setDeletingHouse(true);
-    setDeleteHouseError(null);
+    setDeleteHouseErr(null);
     try {
       await deleteHouse(houseId);
       router.push('/houses/list');
     } catch (e) {
-      setDeleteHouseError(e.message);
+      setDeleteHouseErr(e.message);
       setDeletingHouse(false);
     }
   }
 
-  async function handleDeleteMember(memberId) {
-    setDeletingMemberId(memberId);
-    try {
-      await deleteMember(memberId);
-      setDeleteMemberConfirmId(null);
-      load();
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setDeletingMemberId(null);
-    }
-  }
+  /* ── AppChrome right-side actions: status chip + ⋮ menu ── */
+  const headerActions = house ? (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+      <Chip
+        label={statusLabel}
+        size="small"
+        sx={{ bgcolor: statusColor.bg, color: statusColor.fg, fontWeight: 700, fontSize: 11, height: 22, px: 0.25 }}
+      />
+      <IconButton
+        onClick={(e) => setMoreAnchor(e.currentTarget)}
+        sx={{ color: '#fff' }}
+        size="small"
+        aria-label="अधिक विकल्प"
+      >
+        <MoreVertIcon />
+      </IconButton>
+    </Box>
+  ) : null;
 
+  /* ── Sub-header info strip ── */
+  const infoStrip = house ? (
+    <Box sx={{
+      display: 'flex', flexWrap: 'wrap', bgcolor: '#fff',
+      borderBottom: `1px solid ${colors.border}`, px: 1.25, py: 0.75, gap: 0,
+    }}>
+      <InfoItem icon={<PersonOutlinedIcon sx={{ fontSize: 14 }} />} text={`परिवार प्रमुख: ${house.head_name || 'अज्ञात'}`} />
+      <InfoItem icon={<LocationOnOutlinedIcon sx={{ fontSize: 14 }} />} text={`क्षेत्र: ${areaLabel || '—'}`} />
+      <InfoItem icon={<PeopleOutlinedIcon sx={{ fontSize: 14 }} />} text={`कुल सदस्यः ${house.total_members ?? activeMembers.length}`} />
+      <InfoItem icon={<HowToVoteOutlinedIcon sx={{ fontSize: 14 }} />} text={`मतदाता: ${house.voter_count ?? '—'}`} />
+    </Box>
+  ) : null;
+
+  /* ══════════════════════════════════════════════════════════ */
   return (
-    <AppChrome title={`घर विवरण: ${houseLabel}`}>
-      <Box sx={{ flex: 1, p: 1.25 }}>
-        {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
+    <AppChrome
+      title={house ? `मकान संख्या - ${houseLabel}` : 'मकान विवरण'}
+      backTo="/houses/list"
+      backLabel="मकान सूची"
+      subHeader={infoStrip}
+      actions={headerActions}
+    >
+      {/* extra bottom padding so footer doesn't obscure content */}
+      <Box sx={{ bgcolor: colors.pageBg, pb: '68px' }}>
+
+        {error && <Alert severity="error" sx={{ m: 1 }}>{error}</Alert>}
 
         {!data && !error && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
             <CircularProgress size={28} />
           </Box>
         )}
 
         {data && (
           <>
-            {/* ── Status badge ───────────────────────────────────── */}
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-              <Chip
-                label={STATUS_LABELS[house.survey_status] ?? 'लंबित'}
-                size="small"
-                sx={{ bgcolor: status.bg, color: status.fg, fontWeight: 700 }}
+            {/* ── 1. परिवार विवरण ──────────────────────────────── */}
+            <SectionBox>
+              <SectionHead
+                number="1"
+                title="परिवार विवरण (मतदाता सूची के अनुसार)"
+                onEdit={() => setHouseInfoOpen(true)}
               />
-            </Box>
-
-            {/* ── घर विवरण card ──────────────────────────────────── */}
-            <Paper sx={{ bgcolor: '#fff', borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.10)', p: 1.5, mb: 1.25 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mb: 1 }}>
-                <HomeOutlinedIcon sx={{ fontSize: 18, color: colors.orange }} />
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: colors.orange }}>घर विवरण</Typography>
-                <IconButton
-                  onClick={() => setHouseInfoOpen(true)}
-                  size="small"
-                  sx={{ ml: 'auto', color: colors.blue }}
-                  aria-label="संपादित करें"
-                >
-                  <EditOutlinedIcon sx={{ fontSize: 17 }} />
-                </IconButton>
-              </Box>
-
-              <Typography sx={{ fontSize: 12, color: colors.textMuted }}>परिवार मुखिया</Typography>
-              <Typography sx={{ fontSize: 14, fontWeight: 700, mb: 1 }}>
-                {house.head_name || 'अज्ञात — अभी दर्ज नहीं'}
+              <MemberTable members={activeMembers} caste={house.caste} />
+              <Typography sx={{ fontSize: 10.5, color: colors.textMuted, px: 1.5, py: 0.5, fontStyle: 'italic' }}>
+                * परिवार के मुखिया के सामने HEAD लिखें
               </Typography>
+            </SectionBox>
 
-              {mobile ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-                  <Typography sx={{ fontSize: 13.5, fontWeight: 700 }}>{mobile}</Typography>
-                  <WhatsAppIcon sx={{ fontSize: 16, color: '#25d366' }} />
-                </Box>
-              ) : (
-                <Typography sx={{ fontSize: 12.5, color: colors.textMuted, mb: 1 }}>मोबाइल नंबर दर्ज नहीं</Typography>
-              )}
+            {/* ── 2. प्रभावशाली व्यक्ति ───────────────────────── */}
+            <SectionBox>
+              <SectionHead
+                number="2"
+                title="आपके वार्ड के प्रमुख प्रभावशाली व्यक्ति"
+                onEdit={() => setInfluencersOpen(true)}
+              />
+              <InfluencerTable influencers={influencers} />
+            </SectionBox>
 
-              <Typography sx={{ fontSize: 12.5, color: colors.textMuted, mb: 1 }}>{house.area || '—'}</Typography>
+            {/* ── 6. BJP workers ───────────────────────────────── */}
+            <SectionBox>
+              <SectionHead
+                number="6"
+                title="स्थानीय वार्ड के अंतर्गत बीजेपी में आप किन-किन कार्यकर्ताओं / पदाधिकारियों को जानते हैं :—"
+                onEdit={() => setSurveyOpen(true)}
+              />
+              <WorkersList workers={bjpWorkers} />
+            </SectionBox>
 
-              <Box sx={{ display: 'flex', gap: 3 }}>
-                <Box>
-                  <Typography sx={{ fontSize: 11.5, color: colors.textMuted }}>मकान संख्या</Typography>
-                  <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{houseLabel}</Typography>
-                </Box>
-                <Box>
-                  <Typography sx={{ fontSize: 11.5, color: colors.textMuted }}>जाति / उपजाति</Typography>
-                  <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
-                    {[house.caste, house.subcaste].filter(Boolean).join(' / ') || '—'}
-                  </Typography>
-                </Box>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 3, mt: 1 }}>
-                <Box>
-                  <Typography sx={{ fontSize: 11.5, color: colors.textMuted }}>कुल सदस्य</Typography>
-                  <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{house.total_members ?? house.voter_count}</Typography>
-                </Box>
-                <Box>
-                  <Typography sx={{ fontSize: 11.5, color: colors.textMuted }}>मतदाता</Typography>
-                  <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{house.voter_count}</Typography>
-                </Box>
-              </Box>
-              {house.note && (
-                <Typography sx={{ fontSize: 12, color: colors.textMuted, mt: 1 }}>नोट: {house.note}</Typography>
-              )}
-            </Paper>
+            {/* ── 6. Congress workers ──────────────────────────── */}
+            <SectionBox>
+              <SectionHead
+                number="6"
+                title="स्थानीय वार्ड के अंतर्गत कांग्रेस में आप किन-किन कार्यकर्ताओं / पदाधिकारियों को जानते हैं :—"
+                onEdit={() => setSurveyOpen(true)}
+              />
+              <WorkersList workers={cngrWorkers} />
+            </SectionBox>
 
-            {/* ── सदस्य section ───────────────────────────────────── */}
-            <Box sx={{ display: 'flex', alignItems: 'center', px: 0.5, mb: 0.75 }}>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: colors.orange, flex: 1 }}>
-                घर के मुख्य सदस्य ({activeMembers.length})
-              </Typography>
-              {hasMore && (
-                <Box
-                  onClick={() => setMembersExpanded((v) => !v)}
-                  sx={{ display: 'flex', alignItems: 'center', gap: 0.25, cursor: 'pointer', color: colors.blue }}
-                >
-                  <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
-                    {membersExpanded ? 'कम दिखाएं' : 'और सदस्य देखें'}
-                  </Typography>
-                  {membersExpanded
-                    ? <ExpandLessIcon sx={{ fontSize: 16 }} />
-                    : <ExpandMoreIcon sx={{ fontSize: 16 }} />
-                  }
-                </Box>
-              )}
-            </Box>
-
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 1 }}>
-              {visibleMembers.map((m, i) => (
-                <Paper
-                  key={m.id}
-                  sx={{
-                    p: 1.1,
-                    borderRadius: 2,
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.10)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                  }}
-                >
-                  <Avatar sx={{ bgcolor: colors.orangeTint, color: colors.orange, fontSize: 12.5, fontWeight: 700, width: 28, height: 28 }}>
-                    {i + 1}
-                  </Avatar>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontSize: 13.5, fontWeight: 700 }}>
-                      {m.name} ({genderLabel(m.gender)[0]}/{m.age ?? '—'})
-                    </Typography>
-                    {m.mobile && <Typography sx={{ fontSize: 11.5, color: colors.textMuted }}>📞 {m.mobile}</Typography>}
-                  </Box>
-                  {m.is_head === 1 && (
-                    <Chip label="HEAD" size="small" sx={{ height: 18, fontSize: 10, bgcolor: colors.orange, color: '#fff' }} />
-                  )}
-
-                  {/* Edit / delete — only shown when expanded or first 3 with controls */}
-                  <Box sx={{ display: 'flex', flexShrink: 0 }}>
-                    <IconButton
-                      size="small"
-                      onClick={() => setMemberDialogMember(m)}
-                      sx={{ color: colors.blue }}
-                      aria-label="सदस्य संपादित करें"
-                    >
-                      <EditOutlinedIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => setDeleteMemberConfirmId(m.id)}
-                      sx={{ color: '#c62828' }}
-                      aria-label="सदस्य हटाएँ"
-                    >
-                      <DeleteOutlineIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Box>
-
-                  {/* Inline delete confirm */}
-                  {deleteMemberConfirmId === m.id && (
-                    <Box
-                      sx={{ position: 'absolute', display: 'none' }}
-                    />
-                  )}
-                </Paper>
-              ))}
-
-              {/* Delete confirm row — rendered below the member card */}
-              {deleteMemberConfirmId && (
-                <Paper sx={{ p: 1.25, borderRadius: 2, bgcolor: '#fff3e0', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography sx={{ fontSize: 12.5, flex: 1 }}>
-                    क्या आप इस सदस्य को हटाना चाहते हैं?
-                  </Typography>
-                  <Button onClick={() => setDeleteMemberConfirmId(null)} size="small" sx={{ textTransform: 'none' }}>नहीं</Button>
-                  <Button
-                    onClick={() => handleDeleteMember(deleteMemberConfirmId)}
-                    disabled={deletingMemberId === deleteMemberConfirmId}
-                    size="small"
-                    variant="contained"
-                    color="error"
-                    sx={{ textTransform: 'none' }}
-                  >
-                    {deletingMemberId ? 'हटाया जा रहा…' : 'हाँ, हटाएँ'}
-                  </Button>
-                </Paper>
-              )}
-
-              {activeMembers.length === 0 && (
-                <Typography sx={{ textAlign: 'center', color: colors.textMuted, fontSize: 13, py: 2 }}>
-                  कोई सदस्य नहीं
-                </Typography>
-              )}
-            </Box>
-
-            {/* + New member button */}
-            <Button
-              onClick={() => setMemberDialogMember(null)}
-              variant="outlined"
-              startIcon={<PersonAddAlt1Icon />}
-              fullWidth
-              sx={{ mb: 2, textTransform: 'none', borderRadius: 5, borderColor: colors.orange, color: colors.orange }}
-            >
-              + नया सदस्य जोड़ें
-            </Button>
-
-            {/* ── त्वरित कार्य section ────────────────────────────── */}
-            <Box sx={{ mb: 0.5, px: 0.5 }}>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: colors.orange }}>त्वरित कार्य</Typography>
-            </Box>
-            <Paper sx={{ borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.10)', overflow: 'hidden', mb: 2 }}>
-              <List sx={{ py: 0 }}>
-                <ListItemButton onClick={() => setHouseInfoOpen(true)} sx={{ py: 1.1, borderBottom: `1px solid ${colors.border}` }}>
-                  <ListItemIcon sx={{ minWidth: 36 }}>
-                    <EditOutlinedIcon sx={{ fontSize: 19, color: colors.orange }} />
-                  </ListItemIcon>
-                  <ListItemText primaryTypographyProps={{ fontSize: 13.5, fontWeight: 600 }} primary="घर की जानकारी संपादित करें" />
-                  <ChevronRightIcon sx={{ color: colors.textMuted, fontSize: 18 }} />
-                </ListItemButton>
-
-                <ListItemButton onClick={() => setInfluencersOpen(true)} sx={{ py: 1.1, borderBottom: `1px solid ${colors.border}` }}>
-                  <ListItemIcon sx={{ minWidth: 36 }}>
-                    <GroupsOutlinedIcon sx={{ fontSize: 19, color: colors.orange }} />
-                  </ListItemIcon>
-                  <ListItemText primaryTypographyProps={{ fontSize: 13.5, fontWeight: 600 }} primary="प्रभावशाली व्यक्ति देखें / जोड़ें" />
-                  <ChevronRightIcon sx={{ color: colors.textMuted, fontSize: 18 }} />
-                </ListItemButton>
-
-                <ListItemButton onClick={() => setSurveyOpen(true)} sx={{ py: 1.1, borderBottom: `1px solid ${colors.border}` }}>
-                  <ListItemIcon sx={{ minWidth: 36 }}>
-                    <AssignmentOutlinedIcon sx={{ fontSize: 19, color: colors.orange }} />
-                  </ListItemIcon>
-                  <ListItemText primaryTypographyProps={{ fontSize: 13.5, fontWeight: 600 }} primary="परिवार सर्वेक्षण (एडिट)" />
-                  <ChevronRightIcon sx={{ color: colors.textMuted, fontSize: 18 }} />
-                </ListItemButton>
-
-                <ListItemButton onClick={() => setMemberDialogMember(null)} sx={{ py: 1.1, borderBottom: `1px solid ${colors.border}` }}>
-                  <ListItemIcon sx={{ minWidth: 36 }}>
-                    <PeopleAltOutlinedIcon sx={{ fontSize: 19, color: colors.orange }} />
-                  </ListItemIcon>
-                  <ListItemText primaryTypographyProps={{ fontSize: 13.5, fontWeight: 600 }} primary="सदस्य (एडिट / जोड़ें)" />
-                  <ChevronRightIcon sx={{ color: colors.textMuted, fontSize: 18 }} />
-                </ListItemButton>
-
-                <ListItemButton onClick={() => setSummaryOpen(true)} sx={{ py: 1.1, borderBottom: `1px solid ${colors.border}` }}>
-                  <ListItemIcon sx={{ minWidth: 36 }}>
-                    <SummarizeOutlinedIcon sx={{ fontSize: 19, color: colors.orange }} />
-                  </ListItemIcon>
-                  <ListItemText primaryTypographyProps={{ fontSize: 13.5, fontWeight: 600 }} primary="सारांश (एडिट स्क्रीन)" />
-                  <ChevronRightIcon sx={{ color: colors.textMuted, fontSize: 18 }} />
-                </ListItemButton>
-
-                <ListItemButton
-                  onClick={() => mobile && (window.location.href = `tel:${mobile}`)}
-                  disabled={!mobile}
-                  sx={{ py: 1.1, borderBottom: `1px solid ${colors.border}`, opacity: mobile ? 1 : 0.45 }}
-                >
-                  <ListItemIcon sx={{ minWidth: 36 }}>
-                    <CallOutlinedIcon sx={{ fontSize: 19, color: colors.orange }} />
-                  </ListItemIcon>
-                  <ListItemText primaryTypographyProps={{ fontSize: 13.5, fontWeight: 600 }} primary="कॉल करें" />
-                  <ChevronRightIcon sx={{ color: colors.textMuted, fontSize: 18 }} />
-                </ListItemButton>
-
-                <ListItemButton
-                  onClick={() => mobile && window.open(`https://wa.me/91${mobile}`, '_blank')}
-                  disabled={!mobile}
-                  sx={{ py: 1.1, borderBottom: `1px solid ${colors.border}`, opacity: mobile ? 1 : 0.45 }}
-                >
-                  <ListItemIcon sx={{ minWidth: 36 }}>
-                    <WhatsAppIcon sx={{ fontSize: 19, color: '#25d366' }} />
-                  </ListItemIcon>
-                  <ListItemText primaryTypographyProps={{ fontSize: 13.5, fontWeight: 600 }} primary="WhatsApp करें" />
-                  <ChevronRightIcon sx={{ color: colors.textMuted, fontSize: 18 }} />
-                </ListItemButton>
-
-                <ListItemButton onClick={() => setDeleteHouseConfirm(true)} sx={{ py: 1.1 }}>
-                  <ListItemIcon sx={{ minWidth: 36 }}>
-                    <DeleteOutlineIcon sx={{ fontSize: 19, color: '#c62828' }} />
-                  </ListItemIcon>
-                  <ListItemText primaryTypographyProps={{ fontSize: 13.5, fontWeight: 600, color: '#c62828' }} primary="घर हटाएँ" />
-                </ListItemButton>
-              </List>
-            </Paper>
+            {/* ── 5. सर्वेक्षण टिप्पणी ────────────────────────── */}
+            <SectionBox>
+              <SectionHead
+                number="5"
+                title="उपरोक्त परिवार के संबंध में सर्वेक्षण कर्ता की टिप्पणी"
+                onEdit={() => setSurveyOpen(true)}
+              />
+              <SurveyDisplay survey={survey} devWorks={devWorks} />
+            </SectionBox>
           </>
         )}
       </Box>
 
-      {/* ── Dialogs ──────────────────────────────────────────────── */}
+      {/* ── Sticky footer ─────────────────────────────────────── */}
+      {data && (
+        <Box sx={{
+          position: 'sticky', bottom: 0, zIndex: 4,
+          bgcolor: '#fff', borderTop: `1px solid ${colors.border}`,
+          px: 1.25, py: 0.875,
+          display: 'flex', gap: 0.75,
+        }}>
+          <Button
+            variant="outlined"
+            disabled={!neighbors.prev}
+            onClick={() => neighbors.prev && router.push(`/houses/${neighbors.prev.id}`)}
+            sx={{
+              flex: 1, textTransform: 'none', fontSize: 12, py: 0.75,
+              borderColor: colors.orange, color: colors.orange,
+              '&:disabled': { borderColor: '#ccc', color: '#aaa' },
+            }}
+          >
+            ← पिछला मकान
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => setNotesOpen(true)}
+            sx={{
+              flex: 1.2, textTransform: 'none', fontSize: 12, py: 0.75,
+              borderColor: '#aaa', color: colors.text,
+            }}
+          >
+            नोट / टिप्पणी देखें
+          </Button>
+          <Button
+            variant="contained"
+            disabled={!neighbors.next}
+            onClick={() => neighbors.next && router.push(`/houses/${neighbors.next.id}`)}
+            sx={{
+              flex: 1, textTransform: 'none', fontSize: 12, py: 0.75,
+              bgcolor: colors.orange,
+              '&:hover': { bgcolor: colors.orangeDark },
+              '&:disabled': { bgcolor: '#e0e0e0', color: '#aaa' },
+            }}
+          >
+            अगला मकान →
+          </Button>
+        </Box>
+      )}
+
+      {/* ── ⋮ More menu ──────────────────────────────────────── */}
+      <Menu anchorEl={moreAnchor} open={Boolean(moreAnchor)} onClose={() => setMoreAnchor(null)}>
+        <MenuItem onClick={() => { setMoreAnchor(null); setSummaryOpen(true); }}>
+          <SummarizeOutlinedIcon sx={{ fontSize: 18, mr: 1.25, color: colors.blue }} />
+          सारांश देखें
+        </MenuItem>
+        <MenuItem
+          disabled={!mobile}
+          onClick={() => { setMoreAnchor(null); if (mobile) window.location.href = `tel:${mobile}`; }}
+        >
+          <CallOutlinedIcon sx={{ fontSize: 18, mr: 1.25, color: colors.orange }} />
+          कॉल करें
+        </MenuItem>
+        <MenuItem
+          disabled={!mobile}
+          onClick={() => { setMoreAnchor(null); if (mobile) window.open(`https://wa.me/91${mobile}`, '_blank'); }}
+        >
+          <WhatsAppIcon sx={{ fontSize: 18, mr: 1.25, color: '#25d366' }} />
+          WhatsApp करें
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          onClick={() => { setMoreAnchor(null); setDeleteConfirm(true); }}
+          sx={{ color: '#c62828' }}
+        >
+          <DeleteOutlineIcon sx={{ fontSize: 18, mr: 1.25 }} />
+          घर हटाएँ
+        </MenuItem>
+      </Menu>
+
+      {/* ── Dialogs ──────────────────────────────────────────── */}
       {data && (
         <>
           <HouseInfoDialog
@@ -397,7 +573,6 @@ export default function HouseDetail({ houseId }) {
             house={house}
             members={data.members}
           />
-
           <MemberDialog
             open={memberDialogMember !== undefined}
             onClose={() => setMemberDialogMember(undefined)}
@@ -405,21 +580,18 @@ export default function HouseDetail({ houseId }) {
             houseId={houseId}
             member={memberDialogMember ?? null}
           />
-
           <InfluencersDialog
             open={influencersOpen}
             onClose={() => setInfluencersOpen(false)}
             houseId={houseId}
             houseArea={house?.area}
           />
-
           <SurveyDialog
             open={surveyOpen}
             onClose={() => setSurveyOpen(false)}
             onSaved={load}
             houseId={houseId}
           />
-
           <SummaryDialog
             open={summaryOpen}
             onClose={() => setSummaryOpen(false)}
@@ -430,19 +602,44 @@ export default function HouseDetail({ houseId }) {
         </>
       )}
 
-      {/* ── Delete house confirm dialog ───────────────────────── */}
-      <Dialog open={deleteHouseConfirm} onClose={() => setDeleteHouseConfirm(false)} maxWidth="xs" fullWidth>
-        <DialogContent sx={{ pt: 3 }}>
-          <Typography sx={{ fontSize: 14, fontWeight: 700, mb: 1 }}>घर हटाएँ?</Typography>
-          <Typography sx={{ fontSize: 12.5, color: colors.textMuted }}>
-            यह घर सूची से हटा दिया जाएगा।
-          </Typography>
-          {deleteHouseError && (
-            <Alert severity="error" sx={{ mt: 1 }}>{deleteHouseError}</Alert>
+      {/* ── Notes dialog ─────────────────────────────────────── */}
+      <Dialog open={notesOpen} onClose={() => setNotesOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle sx={{ fontSize: 15, fontWeight: 700, color: colors.orange, pb: 1 }}>
+          नोट / टिप्पणी
+        </DialogTitle>
+        <DialogContent sx={{ pt: 0 }}>
+          {house?.note && (
+            <>
+              <Typography sx={{ fontSize: 12, fontWeight: 600, color: colors.textMuted, mb: 0.5 }}>मकान नोट</Typography>
+              <Typography sx={{ fontSize: 13, mb: 1.5 }}>{house.note}</Typography>
+            </>
+          )}
+          {survey?.remarks && (
+            <>
+              <Typography sx={{ fontSize: 12, fontWeight: 600, color: colors.textMuted, mb: 0.5 }}>सर्वेक्षण टिप्पणी</Typography>
+              <Typography sx={{ fontSize: 13 }}>{survey.remarks}</Typography>
+            </>
+          )}
+          {!house?.note && !survey?.remarks && (
+            <Typography sx={{ fontSize: 13, color: colors.textMuted, textAlign: 'center', py: 2 }}>
+              कोई नोट / टिप्पणी नहीं
+            </Typography>
           )}
         </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 1.5 }}>
+          <Button onClick={() => setNotesOpen(false)} sx={{ textTransform: 'none', color: colors.orange }}>बंद करें</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Delete confirm dialog ─────────────────────────────── */}
+      <Dialog open={deleteConfirm} onClose={() => setDeleteConfirm(false)} maxWidth="xs" fullWidth>
+        <DialogContent sx={{ pt: 3 }}>
+          <Typography sx={{ fontSize: 14, fontWeight: 700, mb: 1 }}>घर हटाएँ?</Typography>
+          <Typography sx={{ fontSize: 12.5, color: colors.textMuted }}>यह घर सूची से हटा दिया जाएगा।</Typography>
+          {deleteHouseErr && <Alert severity="error" sx={{ mt: 1 }}>{deleteHouseErr}</Alert>}
+        </DialogContent>
         <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
-          <Button onClick={() => setDeleteHouseConfirm(false)} fullWidth sx={{ textTransform: 'none' }}>नहीं</Button>
+          <Button onClick={() => setDeleteConfirm(false)} fullWidth sx={{ textTransform: 'none' }}>नहीं</Button>
           <Button
             onClick={handleDeleteHouse}
             disabled={deletingHouse}

@@ -127,3 +127,7 @@ export async function updateInfluencer(id, patch) {
 export async function deleteInfluencer(id) {
   return toJson(await fetch(`/api/influencers/${id}`, { method: 'DELETE' }));
 }
+
+export async function fetchNeighborHouses(id) {
+  return toJson(await fetch(`/api/houses/${id}/neighbors`));
+}
