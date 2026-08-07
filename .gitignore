@@ -36,3 +36,7 @@ yarn-error.log*
 # internal planning docs
 GHAR_SURVEY_PLAN.md
 SIR_CALL_LIST_CLAUDE.md
+
+# AI tool artifacts
+graphify-out/
+.claude/
