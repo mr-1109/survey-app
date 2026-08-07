@@ -3,7 +3,7 @@ import HouseFormPage from '@features/houses/components/HouseFormPage';
 
 export const dynamic = 'force-dynamic';
 
-export default function NewHousePage() {
+export default async function NewHousePage() {
   await requireAccount();
   return <HouseFormPage mode="new" />;
 }

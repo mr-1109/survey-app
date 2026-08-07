@@ -4,7 +4,7 @@ import HouseDetail from '@features/houses/components/HouseDetail';
 
 export const dynamic = 'force-dynamic';
 
-export default function HouseDetailPage({ params }) {
+export default async function HouseDetailPage({ params }) {
   await requireAccount();
   return (
     <Suspense fallback={null}>

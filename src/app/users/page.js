@@ -3,7 +3,7 @@ import UsersView from '@features/users/components/UsersView';
 
 export const dynamic = 'force-dynamic';
 
-export default function UsersPage() {
+export default async function UsersPage() {
   await requireAccount();
   return <UsersView />;
 }

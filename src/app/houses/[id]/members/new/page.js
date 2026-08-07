@@ -3,7 +3,7 @@ import MemberForm from '@features/houses/components/MemberForm';
 
 export const dynamic = 'force-dynamic';
 
-export default function NewMemberPage({ params }) {
+export default async function NewMemberPage({ params }) {
   await requireAccount();
   return <MemberForm houseId={Number(params.id)} />;
 }

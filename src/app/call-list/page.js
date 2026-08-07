@@ -3,7 +3,7 @@ import { CallList } from '@features/call-list';
 
 export const dynamic = 'force-dynamic';
 
-export default function CallListPage() {
+export default async function CallListPage() {
   await requireAccount();
   return <CallList />;
 }

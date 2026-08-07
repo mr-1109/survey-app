@@ -3,7 +3,7 @@ import FamilySurveyWizard from '@features/houses/components/FamilySurveyWizard';
 
 export const dynamic = 'force-dynamic';
 
-export default function FamilySurveyPage({ params }) {
+export default async function FamilySurveyPage({ params }) {
   await requireAccount();
   return <FamilySurveyWizard houseId={Number(params.id)} />;
 }

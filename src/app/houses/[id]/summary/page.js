@@ -3,7 +3,7 @@ import SummaryPage from '@features/houses/components/SummaryPage';
 
 export const dynamic = 'force-dynamic';
 
-export default function HouseSummaryPage({ params }) {
+export default async function HouseSummaryPage({ params }) {
   await requireAccount();
   return <SummaryPage houseId={Number(params.id)} />;
 }

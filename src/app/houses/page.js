@@ -4,7 +4,7 @@ import { requireAccount } from '@server/auth';
 export const dynamic = 'force-dynamic';
 
 /** डैशबोर्ड (होम) अब /dashboard पर है — landing page का एक ही असली पता। */
-export default function HousesHomePage() {
+export default async function HousesHomePage() {
   await requireAccount();
   redirect('/dashboard');
 }
