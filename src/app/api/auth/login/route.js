@@ -34,8 +34,9 @@ export async function POST(request) {
     // else with no user row gets null, which denies everything.
     const user = account.isSuper ? null : await userForPhone(phone);
     const scope = account.isSuper ? [] : (user?.scope ?? null);
+    const name  = user?.name ?? account.phone;
 
-    const { token, expiresAt } = createSession(account, scope);
+    const { token, expiresAt } = createSession({ ...account, name }, scope);
     cookies().set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
     return NextResponse.json({ phone: account.phone });
   } catch (error) {

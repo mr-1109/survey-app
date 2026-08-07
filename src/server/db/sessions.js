@@ -35,13 +35,14 @@ export function createSession(account, scope) {
   const expiresAt = Date.now() + SESSION_DAYS * 86400000;
   getLocalDb()
     .prepare(
-      `INSERT INTO sessions (token_hash, account_id, phone, is_super, scope_json, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO sessions (token_hash, account_id, phone, name, is_super, scope_json, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       hashToken(token),
       account.id,
       account.phone,
+      account.name ?? null,
       account.isSuper ? 1 : 0,
       scope === null ? null : JSON.stringify(scope),
       expiresAt,
@@ -65,7 +66,7 @@ export function getAccountForToken(token) {
   if (!token) return null;
   const db = getLocalDb();
   const row = db
-    .prepare('SELECT account_id, phone, is_super, scope_json, expires_at FROM sessions WHERE token_hash = ?')
+    .prepare('SELECT account_id, phone, name, is_super, scope_json, expires_at FROM sessions WHERE token_hash = ?')
     .get(hashToken(token));
 
   if (!row) return null;
@@ -75,8 +76,9 @@ export function getAccountForToken(token) {
   }
 
   return {
-    id: row.account_id,
-    phone: row.phone,
+    id:      row.account_id,
+    phone:   row.phone,
+    name:    row.name ?? null,
     isSuper: Boolean(row.is_super),
     // null means "no users row behind this account" — kept distinct from [],
     // which means a user with no limits.

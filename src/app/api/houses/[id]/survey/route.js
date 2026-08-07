@@ -70,7 +70,7 @@ export async function PUT(request, { params }) {
         hno:      full.house.house_no_raw,
         jsonData,
         status:   1,
-        surveyBy: viewer.account.id,
+        surveyBy: viewer.account.name ?? viewer.account.phone,
       });
     }
 

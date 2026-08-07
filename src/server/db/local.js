@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   token_hash  TEXT    PRIMARY KEY,
   account_id  INTEGER NOT NULL,
   phone       TEXT,
+  name        TEXT,
   is_super    INTEGER NOT NULL DEFAULT 0,
   scope_json  TEXT,
   expires_at  INTEGER NOT NULL,
@@ -317,8 +318,9 @@ function dropSurveyedByForeignKey(db) {
 
 /** Snapshot columns added when users moved to nndb. */
 const SESSION_COLUMNS = {
-  phone: 'TEXT',
-  is_super: 'INTEGER NOT NULL DEFAULT 0',
+  phone:      'TEXT',
+  name:       'TEXT',
+  is_super:   'INTEGER NOT NULL DEFAULT 0',
   scope_json: 'TEXT',
 };
 
