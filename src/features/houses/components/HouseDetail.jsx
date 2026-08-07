@@ -140,8 +140,9 @@ function SectionBox({ children }) {
 
 /* ── Member table ── */
 function MemberTable({ members, caste }) {
+  const scroll = members.length > 5;
   return (
-    <Box sx={{ overflowX: 'auto' }}>
+    <Box sx={{ overflowX: 'auto', overflowY: scroll ? 'auto' : 'visible', maxHeight: scroll ? 260 : 'none' }}>
       <table style={{ width: '100%', minWidth: 580, borderCollapse: 'collapse' }}>
         <thead>
           <tr>

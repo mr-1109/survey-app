@@ -241,7 +241,7 @@ export async function listHouses({
     FROM SURVEY_DATA sd
     LEFT JOIN EROLL_NN055 e ON e.AREA_ID = sd.AREA_ID AND e.HNO = sd.HNO
     ${whereClause}
-    GROUP BY sd.ID, sd.AREA_ID, sd.HNO, sd.STATUS, sd.JSON_DATA
+    GROUP BY sd.ID
     ORDER BY sd.AREA_ID ASC, CAST(sd.HNO AS UNSIGNED), sd.HNO
     LIMIT ? OFFSET ?
   `;

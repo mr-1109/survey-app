@@ -27,7 +27,7 @@ const CINPUT = {
   outline: 'none',
   boxSizing: 'border-box',
 };
-const CINPUT_SM = { ...CINPUT, padding: '4px 5px', fontSize: 11 };
+const CINPUT_SM = { ...CINPUT, padding: '4px 6px', fontSize: 12 };
 const CSELECT   = { ...CINPUT, cursor: 'pointer', paddingRight: 4 };
 const CSELECT_SM = { ...CINPUT_SM, cursor: 'pointer', paddingRight: 4 };
 
@@ -76,12 +76,13 @@ function NameAgeGenderCell({ name, age, gender, onName, onAge, onGender, extraRo
       />
       <div style={{ display: 'flex', gap: 3 }}>
         <input
-          style={{ ...CINPUT_SM, width: 38, textAlign: 'center' }}
-          type="number"
-          min="0"
-          max="130"
+          style={{ ...CINPUT_SM, width: 52, textAlign: 'center' }}
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={3}
           value={age}
-          onChange={(e) => onAge(e.target.value)}
+          onChange={(e) => onAge(e.target.value.replace(/\D/g, '').slice(0, 3))}
           placeholder="आयु"
         />
         <select
@@ -185,7 +186,8 @@ export default function FamilyEditDialog({ open, onClose, onSaved, houseId, memb
   }
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" scroll="paper">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" scroll="paper"
+      PaperProps={{ sx: { maxHeight: '90vh' } }}>
       <DialogTitle
         sx={{
           fontSize: 15, fontWeight: 700, color: colors.orange,
