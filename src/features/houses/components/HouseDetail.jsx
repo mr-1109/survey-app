@@ -21,9 +21,9 @@ import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import Typography from '@mui/material/Typography';
 import CallOutlinedIcon from '@mui/icons-material/CallOutlined';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined';
 import HowToVoteOutlinedIcon from '@mui/icons-material/HowToVoteOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -41,13 +41,15 @@ import {
   CM_SATISFACTION_OPTIONS,
   genderLabel,
 } from '../constants';
-import HouseInfoDialog   from './dialogs/HouseInfoDialog';
-import MemberDialog      from './dialogs/MemberDialog';
-import InfluencersDialog from './dialogs/InfluencersDialog';
-import SurveyDialog      from './dialogs/SurveyDialog';
-import SummaryDialog     from './dialogs/SummaryDialog';
+import FamilyEditDialog      from './dialogs/FamilyEditDialog';
+import InfluencersEditDialog  from './dialogs/InfluencersEditDialog';
+import WorkersEditDialog      from './dialogs/WorkersEditDialog';
+import RemarksDialog          from './dialogs/RemarksDialog';
+import HouseInfoDialog        from './dialogs/HouseInfoDialog';
+import SurveyDialog           from './dialogs/SurveyDialog';
+import SummaryDialog          from './dialogs/SummaryDialog';
 
-/* ─── Status chip colours ──────────────────────────────────────── */
+/* ─── Status colours ───────────────────────────────────────────── */
 const STATUS_COLOR = {
   done:    { bg: '#2e7d32', fg: '#fff' },
   partial: { bg: '#b26a00', fg: '#fff' },
@@ -57,7 +59,7 @@ const STATUS_COLOR = {
 /* ─── Helpers ──────────────────────────────────────────────────── */
 function parseAreaId(rawId) {
   const parts = String(rawId ?? '').split('_');
-  return { ward: parts[1] ? Number(parts[1]) : null, bhag: parts[2] ? Number(parts[2]) : null };
+  return { ward: parts[1] ? Number(parts[1]) : null };
 }
 
 function parseWorkers(str) {
@@ -70,7 +72,7 @@ function parseDevWorks(raw) {
   try { return JSON.parse(raw || '[]'); } catch { return []; }
 }
 
-/* ─── Table shared styles ──────────────────────────────────────── */
+/* ─── Table header / cell shared styles ───────────────────────── */
 const TH = {
   background: '#f7f7f7',
   borderBottom: '1.5px solid #ddd',
@@ -118,8 +120,8 @@ function SectionHead({ number, title, onEdit }) {
         startIcon={<EditOutlinedIcon sx={{ fontSize: 13 }} />}
         onClick={onEdit}
         sx={{
-          fontSize: 11, textTransform: 'none', py: 0.25, px: 1, flexShrink: 0,
-          borderColor: colors.orange, color: colors.orange, mt: 0.2,
+          fontSize: 11, textTransform: 'none', py: 0.25, px: 1, flexShrink: 0, mt: 0.2,
+          borderColor: colors.orange, color: colors.orange,
           '&:hover': { borderColor: colors.orangeDark, bgcolor: colors.orangeTint },
         }}
       >
@@ -213,7 +215,7 @@ function InfluencerTable({ influencers }) {
               <td style={{ ...TD, textAlign: 'center' }}>{i + 1}</td>
               <td style={{ ...TD, fontWeight: 600 }}>{inf.name || '—'}</td>
               <td style={TD}>{inf.party || '—'}</td>
-              <td style={TD}>{inf.detail || '—'}</td>
+              <td style={TD}>{inf.description ?? inf.detail ?? '—'}</td>
               <td style={{ ...TD, whiteSpace: 'nowrap' }}>{inf.mobile || '—'}</td>
             </tr>
           ))}
@@ -250,7 +252,6 @@ function SurveyDisplay({ survey, devWorks }) {
 
   return (
     <Box sx={{ p: 1.25, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
-      {/* Column 1: Political party */}
       <Box>
         <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: colors.text, mb: 0.5, lineHeight: 1.35 }}>
           परिवार किस पार्टी को सपोर्ट करता है
@@ -258,8 +259,7 @@ function SurveyDisplay({ survey, devWorks }) {
         <RadioGroup value={party} sx={{ pointerEvents: 'none' }}>
           {POLITICAL_PARTY_OPTIONS.map((o) => (
             <FormControlLabel
-              key={o.value}
-              value={o.value}
+              key={o.value} value={o.value}
               control={<Radio size="small" sx={{ py: 0.2 }} />}
               label={<Typography sx={{ fontSize: 10.5 }}>{o.label}</Typography>}
               sx={{ mx: 0, mb: 0 }}
@@ -268,7 +268,6 @@ function SurveyDisplay({ survey, devWorks }) {
         </RadioGroup>
       </Box>
 
-      {/* Column 2: Development works */}
       <Box>
         <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: colors.text, mb: 0.5, lineHeight: 1.35 }}>
           विकास कार्य के लिए माननीय मुख्यमंत्री जी के कार्यों के प्रति परिवार की संतुति
@@ -285,7 +284,6 @@ function SurveyDisplay({ survey, devWorks }) {
         </Box>
       </Box>
 
-      {/* Column 3: CM satisfaction */}
       <Box>
         <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: colors.text, mb: 0.5, lineHeight: 1.35 }}>
           मेरा परिवार माननीय मुख्यमंत्री जी के कार्यों के प्रति संतुति
@@ -293,8 +291,7 @@ function SurveyDisplay({ survey, devWorks }) {
         <RadioGroup value={cm} sx={{ pointerEvents: 'none' }}>
           {CM_SATISFACTION_OPTIONS.map((o) => (
             <FormControlLabel
-              key={o.value}
-              value={o.value}
+              key={o.value} value={o.value}
               control={<Radio size="small" sx={{ py: 0.2 }} />}
               label={<Typography sx={{ fontSize: 10.5 }}>{o.label}</Typography>}
               sx={{ mx: 0, mb: 0 }}
@@ -306,9 +303,9 @@ function SurveyDisplay({ survey, devWorks }) {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════ */
-/*  Main component                                                  */
-/* ═══════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════ */
+/*  Main component                                                 */
+/* ══════════════════════════════════════════════════════════════ */
 
 export default function HouseDetail({ houseId }) {
   const router = useRouter();
@@ -316,23 +313,31 @@ export default function HouseDetail({ houseId }) {
   const [error, setError]         = useState(null);
   const [neighbors, setNeighbors] = useState({ prev: null, next: null });
 
-  /* dialog states */
-  const [houseInfoOpen,      setHouseInfoOpen]      = useState(false);
-  const [memberDialogMember, setMemberDialogMember] = useState(undefined); // undefined=closed null=add obj=edit
-  const [influencersOpen,    setInfluencersOpen]    = useState(false);
-  const [surveyOpen,         setSurveyOpen]         = useState(false);
-  const [summaryOpen,        setSummaryOpen]        = useState(false);
-  const [notesOpen,          setNotesOpen]          = useState(false);
+  /* ── section edit dialogs ── */
+  const [familyEditOpen,       setFamilyEditOpen]       = useState(false);
+  const [influencersEditOpen,  setInfluencersEditOpen]  = useState(false);
+  const [bjpWorkersOpen,       setBjpWorkersOpen]       = useState(false);
+  const [congressWorkersOpen,  setCongressWorkersOpen]  = useState(false);
+  const [remarksOpen,          setRemarksOpen]          = useState(false);
 
-  /* delete state */
+  /* ── ⋮ menu dialogs ── */
+  const [houseInfoOpen, setHouseInfoOpen] = useState(false);
+  const [surveyOpen,    setSurveyOpen]    = useState(false);
+  const [summaryOpen,   setSummaryOpen]   = useState(false);
+  const [notesOpen,     setNotesOpen]     = useState(false);
+
+  /* ── navigation ── */
+  const [nextSuccessOpen, setNextSuccessOpen] = useState(false);
+
+  /* ── delete ── */
   const [deleteConfirm,  setDeleteConfirm]  = useState(false);
   const [deletingHouse,  setDeletingHouse]  = useState(false);
   const [deleteHouseErr, setDeleteHouseErr] = useState(null);
 
-  /* more-menu anchor */
+  /* ── ⋮ anchor ── */
   const [moreAnchor, setMoreAnchor] = useState(null);
 
-  /* ── load ── */
+  /* ── load data ── */
   const load = useCallback(() => {
     fetchHouse(houseId)
       .then((d) => { setData(d); setError(null); })
@@ -348,22 +353,22 @@ export default function HouseDetail({ houseId }) {
   }, [houseId]);
 
   /* ── derived ── */
-  const house          = data?.house;
-  const houseLabel     = house?.house_no ?? house?.house_no_raw ?? '—';
-  const statusKey      = house?.survey_status ?? 'pending';
-  const statusColor    = STATUS_COLOR[statusKey] ?? STATUS_COLOR.pending;
-  const statusLabel    = STATUS_LABELS[statusKey] ?? 'लंबित';
-  const activeMembers  = (data?.members ?? []).filter((m) => !m.is_deleted);
-  const influencers    = data?.influencers ?? [];
-  const survey         = data?.survey ?? {};
-  const mobile         = house?.mobile;
-  const bjpWorkers     = parseWorkers(survey?.colony_workers);
-  const cngrWorkers    = parseWorkers(survey?.block_workers);
-  const devWorks       = parseDevWorks(survey?.development_works);
-  const { ward }       = parseAreaId(house?.area_id);
-  const areaLabel      = [ward ? `वार्ड ${ward}` : null, house?.area].filter(Boolean).join(', ');
+  const house         = data?.house;
+  const houseLabel    = house?.house_no ?? house?.house_no_raw ?? '—';
+  const statusKey     = house?.survey_status ?? 'pending';
+  const statusColor   = STATUS_COLOR[statusKey] ?? STATUS_COLOR.pending;
+  const statusLabel   = STATUS_LABELS[statusKey] ?? 'लंबित';
+  const activeMembers = (data?.members ?? []).filter((m) => !m.is_deleted);
+  const influencers   = data?.influencers ?? [];
+  const survey        = data?.survey ?? {};
+  const mobile        = house?.mobile;
+  const bjpWorkers    = parseWorkers(survey?.colony_workers);
+  const cngrWorkers   = parseWorkers(survey?.block_workers);
+  const devWorks      = parseDevWorks(survey?.development_works);
+  const { ward }      = parseAreaId(house?.area_id);
+  const areaLabel     = [ward ? `वार्ड ${ward}` : null, house?.area].filter(Boolean).join(', ');
 
-  /* ── delete handler ── */
+  /* ── delete ── */
   async function handleDeleteHouse() {
     setDeletingHouse(true);
     setDeleteHouseErr(null);
@@ -376,7 +381,7 @@ export default function HouseDetail({ houseId }) {
     }
   }
 
-  /* ── AppChrome right-side actions: status chip + ⋮ menu ── */
+  /* ── AppChrome right actions: status chip + ⋮ ── */
   const headerActions = house ? (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
       <Chip
@@ -384,12 +389,7 @@ export default function HouseDetail({ houseId }) {
         size="small"
         sx={{ bgcolor: statusColor.bg, color: statusColor.fg, fontWeight: 700, fontSize: 11, height: 22, px: 0.25 }}
       />
-      <IconButton
-        onClick={(e) => setMoreAnchor(e.currentTarget)}
-        sx={{ color: '#fff' }}
-        size="small"
-        aria-label="अधिक विकल्प"
-      >
+      <IconButton onClick={(e) => setMoreAnchor(e.currentTarget)} sx={{ color: '#fff' }} size="small" aria-label="अधिक">
         <MoreVertIcon />
       </IconButton>
     </Box>
@@ -399,12 +399,12 @@ export default function HouseDetail({ houseId }) {
   const infoStrip = house ? (
     <Box sx={{
       display: 'flex', flexWrap: 'wrap', bgcolor: '#fff',
-      borderBottom: `1px solid ${colors.border}`, px: 1.25, py: 0.75, gap: 0,
+      borderBottom: `1px solid ${colors.border}`, px: 1.25, py: 0.75,
     }}>
-      <InfoItem icon={<PersonOutlinedIcon sx={{ fontSize: 14 }} />} text={`परिवार प्रमुख: ${house.head_name || 'अज्ञात'}`} />
-      <InfoItem icon={<LocationOnOutlinedIcon sx={{ fontSize: 14 }} />} text={`क्षेत्र: ${areaLabel || '—'}`} />
-      <InfoItem icon={<PeopleOutlinedIcon sx={{ fontSize: 14 }} />} text={`कुल सदस्यः ${house.total_members ?? activeMembers.length}`} />
-      <InfoItem icon={<HowToVoteOutlinedIcon sx={{ fontSize: 14 }} />} text={`मतदाता: ${house.voter_count ?? '—'}`} />
+      <InfoItem icon={<PersonOutlinedIcon sx={{ fontSize: 14 }} />}      text={`परिवार प्रमुख: ${house.head_name || 'अज्ञात'}`} />
+      <InfoItem icon={<LocationOnOutlinedIcon sx={{ fontSize: 14 }} />}  text={`क्षेत्र: ${areaLabel || '—'}`} />
+      <InfoItem icon={<PeopleOutlinedIcon sx={{ fontSize: 14 }} />}      text={`कुल सदस्यः ${house.total_members ?? activeMembers.length}`} />
+      <InfoItem icon={<HowToVoteOutlinedIcon sx={{ fontSize: 14 }} />}   text={`मतदाता: ${house.voter_count ?? '—'}`} />
     </Box>
   ) : null;
 
@@ -417,7 +417,6 @@ export default function HouseDetail({ houseId }) {
       subHeader={infoStrip}
       actions={headerActions}
     >
-      {/* extra bottom padding so footer doesn't obscure content */}
       <Box sx={{ bgcolor: colors.pageBg, pb: '68px' }}>
 
         {error && <Alert severity="error" sx={{ m: 1 }}>{error}</Alert>}
@@ -430,12 +429,12 @@ export default function HouseDetail({ houseId }) {
 
         {data && (
           <>
-            {/* ── 1. परिवार विवरण ──────────────────────────────── */}
+            {/* ── 1. परिवार विवरण ─────────────────────────────── */}
             <SectionBox>
               <SectionHead
                 number="1"
                 title="परिवार विवरण (मतदाता सूची के अनुसार)"
-                onEdit={() => setHouseInfoOpen(true)}
+                onEdit={() => setFamilyEditOpen(true)}
               />
               <MemberTable members={activeMembers} caste={house.caste} />
               <Typography sx={{ fontSize: 10.5, color: colors.textMuted, px: 1.5, py: 0.5, fontStyle: 'italic' }}>
@@ -443,32 +442,32 @@ export default function HouseDetail({ houseId }) {
               </Typography>
             </SectionBox>
 
-            {/* ── 2. प्रभावशाली व्यक्ति ───────────────────────── */}
+            {/* ── 2. प्रभावशाली व्यक्ति ──────────────────────── */}
             <SectionBox>
               <SectionHead
                 number="2"
                 title="आपके वार्ड के प्रमुख प्रभावशाली व्यक्ति"
-                onEdit={() => setInfluencersOpen(true)}
+                onEdit={() => setInfluencersEditOpen(true)}
               />
               <InfluencerTable influencers={influencers} />
             </SectionBox>
 
-            {/* ── 6. BJP workers ───────────────────────────────── */}
+            {/* ── 3. BJP workers ──────────────────────────────── */}
             <SectionBox>
               <SectionHead
-                number="6"
+                number="3"
                 title="स्थानीय वार्ड के अंतर्गत बीजेपी में आप किन-किन कार्यकर्ताओं / पदाधिकारियों को जानते हैं :—"
-                onEdit={() => setSurveyOpen(true)}
+                onEdit={() => setBjpWorkersOpen(true)}
               />
               <WorkersList workers={bjpWorkers} />
             </SectionBox>
 
-            {/* ── 6. Congress workers ──────────────────────────── */}
+            {/* ── 4. Congress workers ─────────────────────────── */}
             <SectionBox>
               <SectionHead
-                number="6"
+                number="4"
                 title="स्थानीय वार्ड के अंतर्गत कांग्रेस में आप किन-किन कार्यकर्ताओं / पदाधिकारियों को जानते हैं :—"
-                onEdit={() => setSurveyOpen(true)}
+                onEdit={() => setCongressWorkersOpen(true)}
               />
               <WorkersList workers={cngrWorkers} />
             </SectionBox>
@@ -478,21 +477,26 @@ export default function HouseDetail({ houseId }) {
               <SectionHead
                 number="5"
                 title="उपरोक्त परिवार के संबंध में सर्वेक्षण कर्ता की टिप्पणी"
-                onEdit={() => setSurveyOpen(true)}
+                onEdit={() => setRemarksOpen(true)}
               />
               <SurveyDisplay survey={survey} devWorks={devWorks} />
+              {survey?.remarks && (
+                <Box sx={{ px: 1.5, pb: 1.25, pt: 0 }}>
+                  <Typography sx={{ fontSize: 11, color: colors.textMuted, mb: 0.25 }}>टिप्पणी:</Typography>
+                  <Typography sx={{ fontSize: 13, fontStyle: 'italic' }}>{survey.remarks}</Typography>
+                </Box>
+              )}
             </SectionBox>
           </>
         )}
       </Box>
 
-      {/* ── Sticky footer ─────────────────────────────────────── */}
+      {/* ── Sticky footer ──────────────────────────────────────── */}
       {data && (
         <Box sx={{
           position: 'sticky', bottom: 0, zIndex: 4,
           bgcolor: '#fff', borderTop: `1px solid ${colors.border}`,
-          px: 1.25, py: 0.875,
-          display: 'flex', gap: 0.75,
+          px: 1.25, py: 0.875, display: 'flex', gap: 0.75,
         }}>
           <Button
             variant="outlined"
@@ -506,24 +510,22 @@ export default function HouseDetail({ houseId }) {
           >
             ← पिछला मकान
           </Button>
+
           <Button
             variant="outlined"
             onClick={() => setNotesOpen(true)}
-            sx={{
-              flex: 1.2, textTransform: 'none', fontSize: 12, py: 0.75,
-              borderColor: '#aaa', color: colors.text,
-            }}
+            sx={{ flex: 1.2, textTransform: 'none', fontSize: 12, py: 0.75, borderColor: '#aaa', color: colors.text }}
           >
             नोट / टिप्पणी देखें
           </Button>
+
           <Button
             variant="contained"
             disabled={!neighbors.next}
-            onClick={() => neighbors.next && router.push(`/houses/${neighbors.next.id}`)}
+            onClick={() => neighbors.next && setNextSuccessOpen(true)}
             sx={{
               flex: 1, textTransform: 'none', fontSize: 12, py: 0.75,
-              bgcolor: colors.orange,
-              '&:hover': { bgcolor: colors.orangeDark },
+              bgcolor: colors.orange, '&:hover': { bgcolor: colors.orangeDark },
               '&:disabled': { bgcolor: '#e0e0e0', color: '#aaa' },
             }}
           >
@@ -532,39 +534,82 @@ export default function HouseDetail({ houseId }) {
         </Box>
       )}
 
-      {/* ── ⋮ More menu ──────────────────────────────────────── */}
+      {/* ── ⋮ More menu ─────────────────────────────────────────── */}
       <Menu anchorEl={moreAnchor} open={Boolean(moreAnchor)} onClose={() => setMoreAnchor(null)}>
+        <MenuItem onClick={() => { setMoreAnchor(null); setHouseInfoOpen(true); }}>
+          <EditOutlinedIcon sx={{ fontSize: 18, mr: 1.25, color: colors.orange }} />
+          घर की जानकारी संपादित करें
+        </MenuItem>
+        <MenuItem onClick={() => { setMoreAnchor(null); setSurveyOpen(true); }}>
+          <EditOutlinedIcon sx={{ fontSize: 18, mr: 1.25, color: colors.blue }} />
+          पूर्ण सर्वेक्षण संपादित करें
+        </MenuItem>
         <MenuItem onClick={() => { setMoreAnchor(null); setSummaryOpen(true); }}>
           <SummarizeOutlinedIcon sx={{ fontSize: 18, mr: 1.25, color: colors.blue }} />
           सारांश देखें
         </MenuItem>
-        <MenuItem
-          disabled={!mobile}
-          onClick={() => { setMoreAnchor(null); if (mobile) window.location.href = `tel:${mobile}`; }}
-        >
+        <Divider />
+        <MenuItem disabled={!mobile} onClick={() => { setMoreAnchor(null); if (mobile) window.location.href = `tel:${mobile}`; }}>
           <CallOutlinedIcon sx={{ fontSize: 18, mr: 1.25, color: colors.orange }} />
           कॉल करें
         </MenuItem>
-        <MenuItem
-          disabled={!mobile}
-          onClick={() => { setMoreAnchor(null); if (mobile) window.open(`https://wa.me/91${mobile}`, '_blank'); }}
-        >
+        <MenuItem disabled={!mobile} onClick={() => { setMoreAnchor(null); if (mobile) window.open(`https://wa.me/91${mobile}`, '_blank'); }}>
           <WhatsAppIcon sx={{ fontSize: 18, mr: 1.25, color: '#25d366' }} />
           WhatsApp करें
         </MenuItem>
         <Divider />
-        <MenuItem
-          onClick={() => { setMoreAnchor(null); setDeleteConfirm(true); }}
-          sx={{ color: '#c62828' }}
-        >
+        <MenuItem onClick={() => { setMoreAnchor(null); setDeleteConfirm(true); }} sx={{ color: '#c62828' }}>
           <DeleteOutlineIcon sx={{ fontSize: 18, mr: 1.25 }} />
           घर हटाएँ
         </MenuItem>
       </Menu>
 
-      {/* ── Dialogs ──────────────────────────────────────────── */}
+      {/* ── Section dialogs ─────────────────────────────────────── */}
       {data && (
         <>
+          <FamilyEditDialog
+            open={familyEditOpen}
+            onClose={() => setFamilyEditOpen(false)}
+            onSaved={load}
+            houseId={houseId}
+            members={data.members}
+            house={house}
+          />
+
+          <InfluencersEditDialog
+            open={influencersEditOpen}
+            onClose={() => setInfluencersEditOpen(false)}
+            onSaved={load}
+            houseId={houseId}
+          />
+
+          <WorkersEditDialog
+            open={bjpWorkersOpen}
+            onClose={() => setBjpWorkersOpen(false)}
+            onSaved={load}
+            houseId={houseId}
+            type="bjp"
+            survey={survey}
+          />
+
+          <WorkersEditDialog
+            open={congressWorkersOpen}
+            onClose={() => setCongressWorkersOpen(false)}
+            onSaved={load}
+            houseId={houseId}
+            type="congress"
+            survey={survey}
+          />
+
+          <RemarksDialog
+            open={remarksOpen}
+            onClose={() => setRemarksOpen(false)}
+            onSaved={load}
+            houseId={houseId}
+            survey={survey}
+          />
+
+          {/* ⋮ menu dialogs */}
           <HouseInfoDialog
             open={houseInfoOpen}
             onClose={() => setHouseInfoOpen(false)}
@@ -572,19 +617,6 @@ export default function HouseDetail({ houseId }) {
             houseId={houseId}
             house={house}
             members={data.members}
-          />
-          <MemberDialog
-            open={memberDialogMember !== undefined}
-            onClose={() => setMemberDialogMember(undefined)}
-            onSaved={load}
-            houseId={houseId}
-            member={memberDialogMember ?? null}
-          />
-          <InfluencersDialog
-            open={influencersOpen}
-            onClose={() => setInfluencersOpen(false)}
-            houseId={houseId}
-            houseArea={house?.area}
           />
           <SurveyDialog
             open={surveyOpen}
@@ -602,7 +634,36 @@ export default function HouseDetail({ houseId }) {
         </>
       )}
 
-      {/* ── Notes dialog ─────────────────────────────────────── */}
+      {/* ── अगला मकान success popup ─────────────────────────────── */}
+      <Dialog open={nextSuccessOpen} onClose={() => setNextSuccessOpen(false)} maxWidth="xs" fullWidth>
+        <DialogContent sx={{ textAlign: 'center', pt: 3.5, pb: 2 }}>
+          <CheckCircleIcon sx={{ fontSize: 60, color: '#2e7d32', mb: 1.5 }} />
+          <Typography sx={{ fontSize: 17, fontWeight: 700, mb: 0.75 }}>
+            सफलतापूर्वक सहेजा गया
+          </Typography>
+          <Typography sx={{ fontSize: 13.5, color: colors.textMuted }}>
+            सभी जानकारी अपडेट कर दी गई है।
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pb: 2.5 }}>
+          <Button
+            onClick={() => {
+              setNextSuccessOpen(false);
+              if (neighbors.next) router.push(`/houses/${neighbors.next.id}`);
+            }}
+            variant="outlined"
+            sx={{
+              textTransform: 'none', px: 4, fontSize: 14,
+              borderColor: colors.orange, color: colors.orange,
+              '&:hover': { bgcolor: colors.orangeTint },
+            }}
+          >
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Notes dialog ────────────────────────────────────────── */}
       <Dialog open={notesOpen} onClose={() => setNotesOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle sx={{ fontSize: 15, fontWeight: 700, color: colors.orange, pb: 1 }}>
           नोट / टिप्पणी
@@ -631,7 +692,7 @@ export default function HouseDetail({ houseId }) {
         </DialogActions>
       </Dialog>
 
-      {/* ── Delete confirm dialog ─────────────────────────────── */}
+      {/* ── Delete confirm ──────────────────────────────────────── */}
       <Dialog open={deleteConfirm} onClose={() => setDeleteConfirm(false)} maxWidth="xs" fullWidth>
         <DialogContent sx={{ pt: 3 }}>
           <Typography sx={{ fontSize: 14, fontWeight: 700, mb: 1 }}>घर हटाएँ?</Typography>
@@ -640,14 +701,7 @@ export default function HouseDetail({ houseId }) {
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
           <Button onClick={() => setDeleteConfirm(false)} fullWidth sx={{ textTransform: 'none' }}>नहीं</Button>
-          <Button
-            onClick={handleDeleteHouse}
-            disabled={deletingHouse}
-            fullWidth
-            variant="contained"
-            color="error"
-            sx={{ textTransform: 'none' }}
-          >
+          <Button onClick={handleDeleteHouse} disabled={deletingHouse} fullWidth variant="contained" color="error" sx={{ textTransform: 'none' }}>
             {deletingHouse ? 'हटाया जा रहा…' : 'हाँ, हटाएँ'}
           </Button>
         </DialogActions>
