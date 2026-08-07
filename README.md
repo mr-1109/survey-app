@@ -51,7 +51,7 @@ All survey data is saved to a remote MySQL `SURVEY_DATA` table and also cached l
           │                          │
 ┌─────────▼──────────┐   ┌──────────▼──────────────┐
 │  Local SQLite       │   │  Remote MariaDB (nndb)   │
-│  data/app.db        │   │  216.69.171.204          │
+│  data/app.db        │   │  configured via .env.local          │
 │                     │   │                          │
 │  houses             │   │  EROLL_NN055 (voter roll)│
 │  house_members      │   │  SURVEY_DATA             │
@@ -517,11 +517,11 @@ sql/
 Create `.env.local` (never commit this file — it is gitignored):
 
 ```env
-MYSQL_HOST=216.69.171.204
+MYSQL_HOST=your_db_host
 MYSQL_PORT=3306
 MYSQL_USER=your_db_user
 MYSQL_PASSWORD=your_db_password
-MYSQL_DATABASE=nndb
+MYSQL_DATABASE=your_db_name
 ```
 
 See `.env.local.example` for the template.
