@@ -1,0 +1,22 @@
+{
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["@server/*", "**/src/server/*"],
+            "message": "Client code must reach data through /api/* routes, never @server/*."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["src/app/**/*.js", "src/server/**/*.js"],
+      "rules": { "no-restricted-imports": "off" }
+    }
+  ]
+}

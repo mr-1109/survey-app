@@ -1,0 +1,33 @@
+{
+  "name": "sir-rj188-call-list",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "NEXT_DIST_DIR=.next-build next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:check": "node scripts/check-db.mjs",
+    "db:indexes": "node scripts/create-indexes.mjs",
+    "import:suket": "node scripts/import-suket.mjs",
+    "import:mysql": "node scripts/import-mysql.mjs"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
+    "@mui/icons-material": "^5.16.7",
+    "@mui/material": "^5.16.7",
+    "@mui/material-nextjs": "^5.16.6",
+    "better-sqlite3": "^13.0.2",
+    "mysql2": "^3.11.0",
+    "next": "14.2.35",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "server-only": "^0.0.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.35"
+  }
+}
