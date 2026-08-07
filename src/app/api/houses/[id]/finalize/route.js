@@ -34,7 +34,7 @@ export async function POST(request, { params }) {
         hno:      full.house.house_no_raw,
         jsonData,
         status:   2,
-        surveyBy: viewer.account.name ?? viewer.account.phone,
+        surveyBy: viewer.account.phone,
       });
     }
 
