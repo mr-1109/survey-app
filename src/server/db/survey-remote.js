@@ -53,10 +53,8 @@ export function buildJsonData({ house, members = [], survey, influencers = [] })
     },
     schemes: [],
     knownWorkers: {
-      colony:   sv.colony_workers ?? null,
-      block:    sv.block_workers  ?? null,
-      bjp:      [],
-      congress: [],
+      bjp:      sv.colony_workers ?? null,
+      congress: sv.block_workers  ?? null,
     },
     influential: influencers.map(p => ({
       name:        p.name,
