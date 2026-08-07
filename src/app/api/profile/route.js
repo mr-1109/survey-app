@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 /** The signed-in user's own record, plus everyone they onboarded. */
 export async function GET() {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
   try {

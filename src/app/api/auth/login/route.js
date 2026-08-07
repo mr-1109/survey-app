@@ -36,8 +36,8 @@ export async function POST(request) {
     const scope = account.isSuper ? [] : (user?.scope ?? null);
     const name  = user?.name ?? account.phone;
 
-    const { token, expiresAt } = createSession({ ...account, name }, scope);
-    cookies().set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
+    const { token, expiresAt } = await createSession({ ...account, name }, scope);
+    (await cookies()).set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
     return NextResponse.json({ phone: account.phone });
   } catch (error) {
     console.error('[POST /api/auth/login]', error.message);

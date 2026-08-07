@@ -4,8 +4,8 @@ import AuthPage from '@features/auth/components/AuthPage';
 
 export const dynamic = 'force-dynamic';
 
-export default function Home() {
-  // Already signed in (or auth switched off for preview) — skip the form.
-  if (authDisabled() || currentAccount()) redirect('/dashboard');
+export default async function Home() {
+  const account = await currentAccount();
+  if (authDisabled() || account) redirect('/dashboard');
   return <AuthPage />;
 }

@@ -1,22 +1,10 @@
 import 'server-only';
 import crypto from 'node:crypto';
-import { getLocalDb } from './local';
+import { query } from './pool';
 
 /**
- * Login sessions, kept in local SQLite even though the accounts they point at
- * live in nndb.
- *
- * Every request resolves a session, and a round-trip to the remote host costs
- * 150–450ms — paying that on each page load would make the whole app feel slow.
- * So the account's identity and scope are snapshotted onto the row at login and
- * request handling never leaves the process.
- *
- * The cost of a snapshot is staleness, which is settled by revoking sessions
- * whenever the user behind them changes: edit, pause or delete all force a
- * fresh login rather than letting an old scope linger.
- *
- * Only the SHA-256 of the token is stored, so a copy of this file hands over no
- * usable cookies.
+ * Session management — stored in nndb MySQL `sessions` table.
+ * All functions are async. The table is created by scripts/populate-survey-data.mjs.
  */
 
 const SESSION_DAYS = 7;
@@ -25,63 +13,71 @@ function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
-/**
- * `scope` is the grant list to remember for this login, or null when the
- * account has no active `users` row — which must deny everything rather than
- * fall open to unrestricted.
- */
-export function createSession(account, scope) {
-  const token = crypto.randomBytes(32).toString('hex');
+export async function createSession(account, scope) {
+  const token     = crypto.randomBytes(32).toString('hex');
   const expiresAt = Date.now() + SESSION_DAYS * 86400000;
-  getLocalDb()
-    .prepare(
-      `INSERT INTO sessions (token_hash, account_id, phone, name, is_super, scope_json, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .run(
+
+  await query(
+    `INSERT INTO sessions (token_hash, account_id, phone, name, is_super, scope_json, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       account_id = VALUES(account_id),
+       phone      = VALUES(phone),
+       name       = VALUES(name),
+       is_super   = VALUES(is_super),
+       scope_json = VALUES(scope_json),
+       expires_at = VALUES(expires_at)`,
+    [
       hashToken(token),
       account.id,
-      account.phone,
-      account.name ?? null,
+      account.phone ?? null,
+      account.name  ?? null,
       account.isSuper ? 1 : 0,
       scope === null ? null : JSON.stringify(scope),
       expiresAt,
-    );
+    ],
+  );
+
   return { token, expiresAt };
 }
 
-export function destroySession(token) {
+export async function destroySession(token) {
   if (!token) return;
-  getLocalDb().prepare('DELETE FROM sessions WHERE token_hash = ?').run(hashToken(token));
+  await query('DELETE FROM sessions WHERE token_hash = ?', [hashToken(token)]);
 }
 
-/** Forces re-login for one mobile number, after their user record changed. */
-export function revokeSessionsForPhone(phone) {
+export async function revokeSessionsForPhone(phone) {
   if (!phone) return;
-  getLocalDb().prepare('DELETE FROM sessions WHERE phone = ?').run(String(phone));
+  await query('DELETE FROM sessions WHERE phone = ?', [String(phone)]);
 }
 
-/** Resolves a token to an account, clearing the row once it has expired. */
-export function getAccountForToken(token) {
-  if (!token) return null;
-  const db = getLocalDb();
-  const row = db
-    .prepare('SELECT account_id, phone, name, is_super, scope_json, expires_at FROM sessions WHERE token_hash = ?')
-    .get(hashToken(token));
+/** mysql2 may auto-parse longtext that looks like JSON; handle both cases. */
+function parseScope(raw) {
+  if (raw == null || raw === '') return null;
+  if (typeof raw !== 'string') return raw; // already parsed as object/array by driver
+  try { return JSON.parse(raw); } catch { return null; }
+}
 
+export async function getAccountForToken(token) {
+  if (!token) return null;
+
+  const [rows] = await query(
+    'SELECT account_id, phone, name, is_super, scope_json, expires_at FROM sessions WHERE token_hash = ?',
+    [hashToken(token)],
+  );
+  const row = rows[0];
   if (!row) return null;
-  if (row.expires_at < Date.now()) {
-    db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(hashToken(token));
+
+  if (Number(row.expires_at) < Date.now()) {
+    await query('DELETE FROM sessions WHERE token_hash = ?', [hashToken(token)]);
     return null;
   }
 
   return {
     id:      row.account_id,
-    phone:   row.phone,
-    name:    row.name ?? null,
+    phone:   row.phone  ?? null,
+    name:    row.name   ?? null,
     isSuper: Boolean(row.is_super),
-    // null means "no users row behind this account" — kept distinct from [],
-    // which means a user with no limits.
-    scope: row.scope_json === null ? null : JSON.parse(row.scope_json),
+    scope:   parseScope(row.scope_json),
   };
 }

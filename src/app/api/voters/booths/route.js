@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 /** Voters per भाग, biggest first, limited to the viewer's scope. */
 export async function GET() {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
   try {

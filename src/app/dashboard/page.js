@@ -8,6 +8,6 @@ export const dynamic = 'force-dynamic';
  * पुराना AC188 मतदाता डैशबोर्ड अब /dashboard/voters पर उपलब्ध है।
  */
 export default function DashboardPage() {
-  requireAccount();
+  await requireAccount();
   return <SurveyDashboard />;
 }

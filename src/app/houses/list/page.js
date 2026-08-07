@@ -5,7 +5,7 @@ import HouseList from '@features/houses/components/HouseList';
 export const dynamic = 'force-dynamic';
 
 export default function HouseListPage() {
-  requireAccount();
+  await requireAccount();
   return (
     <Suspense fallback={null}>
       <HouseList />

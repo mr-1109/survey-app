@@ -129,8 +129,8 @@ export async function updateUser(id, { name, mobile, role, scope = [] }) {
     await writeScope(conn, id, scope);
   });
 
-  revokeSessionsForPhone(previous?.mobile);
-  if (mobile && mobile !== previous?.mobile) revokeSessionsForPhone(mobile);
+  await revokeSessionsForPhone(previous?.mobile);
+  if (mobile && mobile !== previous?.mobile) await revokeSessionsForPhone(mobile);
   return getUser(id);
 }
 
@@ -148,7 +148,7 @@ export async function deleteUser(id) {
     await conn.execute('DELETE FROM users WHERE id = ?', [id]);
   });
 
-  revokeSessionsForPhone(row.mobile);
+  await revokeSessionsForPhone(row.mobile);
   return true;
 }
 
@@ -158,7 +158,7 @@ export async function setUserActive(id, active) {
 
   const [info] = await query('UPDATE users SET active = ? WHERE id = ?', [active ? 1 : 0, id]);
   // A paused user must stop being able to act, not merely stop being listed.
-  if (!active) revokeSessionsForPhone(row.mobile);
+  if (!active) await revokeSessionsForPhone(row.mobile);
   return info.affectedRows > 0;
 }
 

@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 /** PATCH /api/voters/:vlistid  { "feedback": "bjp" } — the app's only write. */
 export async function PATCH(request, { params }) {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
   const vlistid = Number(params.vlistid);

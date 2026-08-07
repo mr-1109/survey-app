@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 const MIN_SEARCH_LENGTH = 2;
 
 export async function GET(request) {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
   const params = request.nextUrl.searchParams;

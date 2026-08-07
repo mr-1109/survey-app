@@ -4,6 +4,6 @@ import InfluencerList from '@features/houses/components/InfluencerList';
 export const dynamic = 'force-dynamic';
 
 export default function InfluencersPage({ params }) {
-  requireAccount();
+  await requireAccount();
   return <InfluencerList houseId={Number(params.id)} />;
 }

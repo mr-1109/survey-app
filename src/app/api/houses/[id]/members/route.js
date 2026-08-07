@@ -6,10 +6,10 @@ import { guardHouse } from '@server/guards';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request, { params }) {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
-  const denied = guardHouse(params.id, viewer);
+  const denied = await guardHouse(params.id, viewer);
   if (denied) return denied;
   const houseId = Number(params.id);
 
@@ -42,20 +42,20 @@ export async function POST(request, { params }) {
 
   try {
     return NextResponse.json(
-      addMember(houseId, {
+      await addMember(houseId, {
         name,
-        relation: body?.relation,
+        relation:      body?.relation,
         relative_name: body?.relative_name,
         age,
         gender,
         mobile,
-        occupation: body?.occupation,
+        occupation:    body?.occupation,
         voter_category: body?.voter_category,
-        education: body?.education,
+        education:     body?.education,
         marital_status: body?.marital_status,
-        note: body?.note,
-        epic: body?.epic,
-        dependent_on: body?.dependent_on,
+        note:          body?.note,
+        epic:          body?.epic,
+        dependent_on:  body?.dependent_on,
       }),
       { status: 201 },
     );

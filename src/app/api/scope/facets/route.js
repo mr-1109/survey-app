@@ -10,18 +10,17 @@ export const dynamic = 'force-dynamic';
  * picked. Levels the roll has no values for come back as empty arrays.
  */
 export async function GET(request) {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
   try {
-    // Repeated params (?ward=38&ward=40) express a multi-value selection.
     const params = request.nextUrl.searchParams;
     const selected = {};
     for (const key of LEVEL_KEYS) {
       const values = params.getAll(key).filter(Boolean);
       if (values.length) selected[key] = values;
     }
-    return NextResponse.json(getScopeFacets(selected, viewer.scope));
+    return NextResponse.json(await getScopeFacets(selected, viewer.scope));
   } catch (error) {
     console.error('[GET /api/scope/facets]', error);
     return NextResponse.json({ error: 'क्षेत्र सूची लोड नहीं हुई' }, { status: 500 });

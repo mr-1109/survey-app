@@ -8,7 +8,7 @@ import { normaliseScope, scopeSummary } from '@shared/scope';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
   const includeInactive = request.nextUrl.searchParams.get('all') === '1';
@@ -26,7 +26,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
   let body;

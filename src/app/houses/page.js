@@ -5,6 +5,6 @@ export const dynamic = 'force-dynamic';
 
 /** डैशबोर्ड (होम) अब /dashboard पर है — landing page का एक ही असली पता। */
 export default function HousesHomePage() {
-  requireAccount();
+  await requireAccount();
   redirect('/dashboard');
 }

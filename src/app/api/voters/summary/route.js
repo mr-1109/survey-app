@@ -7,7 +7,7 @@ import { voterPredicate, isBhagInScope } from '@server/scope';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
   const bhagRaw = request.nextUrl.searchParams.get('bhag') ?? 'all';

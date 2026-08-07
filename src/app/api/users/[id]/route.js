@@ -23,7 +23,7 @@ function parseId(params) {
  * `{ error }` to return straight to the client, or `{ target }`.
  */
 async function authorize(params) {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return { error: unauthorized() };
 
   const id = parseId(params);

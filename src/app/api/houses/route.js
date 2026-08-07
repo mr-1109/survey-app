@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 const PAGE_SIZE = 25;
 
 export async function GET(request) {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
   const params = request.nextUrl.searchParams;
@@ -19,8 +19,10 @@ export async function GET(request) {
   const offset = Number(params.get('offset')) || 0;
 
   try {
-    const { houses, hasMore } = listHouses({ ward, part, status, q, limit, offset, scope: viewer.scope });
-    const stats = getHouseStats(ward, part, viewer.scope);
+    const [{ houses, hasMore }, stats] = await Promise.all([
+      listHouses({ ward, part, status, q, limit, offset, scope: viewer.scope }),
+      getHouseStats(ward, part, viewer.scope),
+    ]);
     return NextResponse.json({ houses, hasMore, stats });
   } catch (error) {
     console.error('[GET /api/houses]', error);
@@ -28,9 +30,8 @@ export async function GET(request) {
   }
 }
 
-/** "+ नया घर जोड़ें" (screen 2) — a house not present in the imported roll. */
 export async function POST(request) {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
   let body;
@@ -40,9 +41,9 @@ export async function POST(request) {
     return NextResponse.json({ error: 'अमान्य JSON' }, { status: 400 });
   }
 
-  const house_no = String(body?.house_no ?? '').trim();
+  const house_no  = String(body?.house_no  ?? '').trim();
   const head_name = String(body?.head_name ?? '').trim();
-  const area = String(body?.area ?? '').trim();
+  const area      = String(body?.area      ?? '').trim();
   if (!house_no || !head_name || !area) {
     return NextResponse.json({ error: 'घर संख्या, परिवार प्रमुख और पता आवश्यक हैं' }, { status: 400 });
   }
@@ -52,22 +53,20 @@ export async function POST(request) {
     return NextResponse.json({ error: 'मोबाइल नंबर 10 अंकों का हो' }, { status: 400 });
   }
 
-  // A new house must land inside the creator's own scope, otherwise they could
-  // add one and then no longer be able to see it.
   const scope = viewer.scope ?? {};
 
   try {
-    const data = createHouse({
-      ward_no: scope.ward || body?.ward_no || 'manual',
-      part_no: scope.bhag || body?.part_no || '0',
+    const data = await createHouse({
+      ward_no:       scope.ward || body?.ward_no || 'manual',
+      part_no:       scope.bhag || body?.part_no || '0',
       house_no,
       head_name,
-      mobile: mobile || null,
+      mobile:        mobile || null,
       area,
-      caste: body?.caste || null,
-      subcaste: body?.subcaste || null,
+      caste:         body?.caste    || null,
+      subcaste:      body?.subcaste || null,
       total_members: body?.total_members === '' || body?.total_members == null ? null : Number(body.total_members),
-      note: body?.note || null,
+      note:          body?.note     || null,
     });
     return NextResponse.json(data, { status: 201 });
   } catch (error) {

@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
 import {
-  getHouse,
   saveSurvey,
   POLITICAL_PARTY_VALUES,
   DEVELOPMENT_WORK_KEYS,
   CM_SATISFACTION_VALUES,
 } from '@server/db/houses';
-import { buildJsonData, saveRemoteSurvey } from '@server/db/survey-remote';
 import { apiViewer, unauthorized } from '@server/auth';
 import { guardHouse } from '@server/guards';
 
@@ -15,13 +13,12 @@ export const dynamic = 'force-dynamic';
 const MAX_TEXT = 250;
 
 export async function PUT(request, { params }) {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
-  const denied = guardHouse(params.id, viewer);
+  const denied = await guardHouse(params.id, viewer);
   if (denied) return denied;
   const houseId = Number(params.id);
-  const full = getHouse(houseId);
 
   let body;
   try { body = await request.json(); }
@@ -47,33 +44,13 @@ export async function PUT(request, { params }) {
     development_works:     development,
     development_other:     String(body.development_other ?? '').trim() || null,
     cm_satisfaction:       body.cm_satisfaction || null,
-    colony_workers:        String(body.colony_workers ?? '').trim() || null,
-    block_workers:         String(body.block_workers ?? '').trim() || null,
+    colony_workers:        String(body.colony_workers  ?? '').trim() || null,
+    block_workers:         String(body.block_workers   ?? '').trim() || null,
     remarks:               String(body.remarks ?? '').trim() || null,
   };
 
   try {
-    // 1. Save to local SQLite (draft cache)
-    const result = saveSurvey(houseId, surveyPatch, viewer.account.id);
-
-    // 2. Write partial JSON to MySQL SURVEY_DATA (STATUS=1 Partial)
-    if (full.house.area_id && full.house.house_no_raw) {
-      const mergedSurvey = { ...(full.survey ?? {}), ...surveyPatch };
-      const jsonData = buildJsonData({
-        house:       full.house,
-        members:     full.members,
-        survey:      mergedSurvey,
-        influencers: full.influencers,
-      });
-      await saveRemoteSurvey({
-        areaId:   full.house.area_id,
-        hno:      full.house.house_no_raw,
-        jsonData,
-        status:   1,
-        surveyBy: viewer.account.phone,
-      });
-    }
-
+    const result = await saveSurvey(houseId, surveyPatch, viewer.account.phone);
     return NextResponse.json(result);
   } catch (error) {
     console.error('[PUT /api/houses/:id/survey]', error);

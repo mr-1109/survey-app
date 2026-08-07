@@ -1,5 +1,4 @@
 import 'server-only';
-import { getLocalDb } from './db/local';
 import {
   LEVEL_KEYS,
   emptyGrant,
@@ -164,48 +163,81 @@ export function voterPredicate(scope) {
   return buildPredicate(scope, ROLL_COLUMNS);
 }
 
-/** Local `houses` columns for each level that narrows the imported roll. */
-const HOUSE_COLUMNS = {
-  district: 'district',
-  assembly: 'assembly',
-  tehsil: 'tehsil',
-  city: 'city',
-  ward: 'ward_no',
-  bhag: 'part_no',
-};
-
 /**
- * `houses` predicate for a scope — the survey app's counterpart to
- * voterPredicate, since every screen reads local SQLite rather than the roll.
- *
- * It is always ANDed on top of the caller's own filters, which is what makes a
- * widening request harmless: a ward-38 user asking for ward 45 gets
- * `ward_no = '45' AND ward_no = '38'` and sees nothing.
+ * MySQL SURVEY_DATA predicate: generates AREA_ID LIKE conditions for scope.
+ * AREA_ID format: 'NN055_{ward}_{bhag}_{page}'
+ * Returns { sql: ' AND (...)', params: [...] } with positional ? placeholders.
  */
+export function housePredicateMysql(scope, alias = 'sd') {
+  if (isFullAccess(scope)) return { sql: '', params: [] };
+  if (deniesEverything(scope)) return { sql: ' AND 1=0', params: [] };
+
+  const pre     = alias ? `${alias}.` : '';
+  const grants  = normaliseScope(scope);
+  const clauses = [];
+  const params  = [];
+
+  for (const grant of grants) {
+    const wards = grant.ward  ?? [];
+    const bhags = grant.bhag  ?? [];
+
+    if (!wards.length) {
+      // This grant imposes no ward restriction → unrestricted
+      return { sql: '', params: [] };
+    }
+
+    if (!bhags.length) {
+      for (const w of wards) {
+        clauses.push(`${pre}AREA_ID LIKE ?`);
+        params.push(`NN055_${w}_%`);
+      }
+    } else {
+      for (const w of wards) {
+        for (const b of bhags) {
+          clauses.push(`${pre}AREA_ID LIKE ?`);
+          params.push(`NN055_${w}_${b}_%`);
+        }
+      }
+    }
+  }
+
+  if (!clauses.length) return { sql: '', params: [] };
+  const combined = clauses.length === 1 ? clauses[0] : `(${clauses.join(' OR ')})`;
+  return { sql: ` AND ${combined}`, params };
+}
+
+/** Kept for backward compat with the voters (call-list) feature. */
 export function housePredicate(scope, alias = '') {
+  const HOUSE_COLUMNS = {
+    district: 'district', assembly: 'assembly', tehsil: 'tehsil',
+    city: 'city', ward: 'ward_no', bhag: 'part_no',
+  };
   return buildPredicate(scope, HOUSE_COLUMNS, { alias });
 }
 
 /**
- * The भाग numbers a scope covers, or null for unrestricted. Read from the
- * imported roll in local SQLite rather than the remote table, so it costs one
- * indexed query and works offline.
+ * The भाग numbers a scope covers, or null for unrestricted.
+ * Queries SURVEY_DATA (MySQL) directly.
  */
-export function allowedBhags(scope) {
+export async function allowedBhags(scope) {
   if (isFullAccess(scope)) return null;
   if (deniesEverything(scope)) return new Set();
 
-  const sc = housePredicate(scope);
+  const sc = housePredicateMysql(scope);
   if (!sc.sql) return null;
 
-  const rows = getLocalDb()
-    .prepare(`SELECT DISTINCT part_no AS b FROM houses WHERE is_deleted = 0${sc.sql}`)
-    .all(sc.params);
-  return new Set(rows.map((r) => Number(r.b)));
+  const { query } = await import('./db/pool.js');
+  const cond = sc.sql.replace(/^\s*AND\s*/i, '');
+  const [rows] = await query(
+    `SELECT DISTINCT SUBSTRING_INDEX(SUBSTRING_INDEX(AREA_ID,'_',3),'_',-1) AS b
+     FROM SURVEY_DATA WHERE ${cond}`,
+    sc.params,
+  );
+  return new Set(rows.map(r => Number(r.b)));
 }
 
-export function isBhagInScope(scope, bhag) {
-  const allowed = allowedBhags(scope);
+export async function isBhagInScope(scope, bhag) {
+  const allowed = await allowedBhags(scope);
   return allowed === null || allowed.has(Number(bhag));
 }
 

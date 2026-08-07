@@ -7,7 +7,7 @@ import { allowedBhags } from '@server/scope';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
   try {

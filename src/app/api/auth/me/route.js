@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 /** Identity plus the scope the client should render its forms against. */
 export async function GET() {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
   const unrestricted = isFullAccess(viewer.scope);

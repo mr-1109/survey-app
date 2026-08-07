@@ -4,6 +4,6 @@ import SettingsView from '@features/settings/components/SettingsView';
 export const dynamic = 'force-dynamic';
 
 export default function SettingsPage() {
-  requireAccount();
+  await requireAccount();
   return <SettingsView />;
 }

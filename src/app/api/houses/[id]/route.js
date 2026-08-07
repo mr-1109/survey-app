@@ -6,15 +6,15 @@ import { guardHouse } from '@server/guards';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request, { params }) {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
-  const denied = guardHouse(params.id, viewer);
+  const denied = await guardHouse(params.id, viewer);
   if (denied) return denied;
   const id = Number(params.id);
 
   try {
-    return NextResponse.json(getHouse(id));
+    return NextResponse.json(await getHouse(id));
   } catch (error) {
     console.error('[GET /api/houses/:id]', error);
     return NextResponse.json({ error: 'घर विवरण लोड नहीं हुआ' }, { status: 500 });
@@ -22,10 +22,10 @@ export async function GET(request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
-  const denied = guardHouse(params.id, viewer);
+  const denied = await guardHouse(params.id, viewer);
   if (denied) return denied;
   const id = Number(params.id);
 
@@ -37,12 +37,12 @@ export async function PATCH(request, { params }) {
   }
 
   const patch = {};
-  if ('house_no' in body) patch.house_no = String(body.house_no ?? '').trim() || null;
+  if ('house_no'  in body) patch.house_no  = String(body.house_no  ?? '').trim() || null;
   if ('head_name' in body) patch.head_name = String(body.head_name ?? '').trim() || null;
-  if ('area' in body) patch.area = String(body.area ?? '').trim() || null;
-  if ('caste' in body) patch.caste = String(body.caste ?? '').trim() || null;
-  if ('subcaste' in body) patch.subcaste = String(body.subcaste ?? '').trim() || null;
-  if ('note' in body) patch.note = String(body.note ?? '').trim() || null;
+  if ('area'      in body) patch.area      = String(body.area      ?? '').trim() || null;
+  if ('caste'     in body) patch.caste     = String(body.caste     ?? '').trim() || null;
+  if ('subcaste'  in body) patch.subcaste  = String(body.subcaste  ?? '').trim() || null;
+  if ('note'      in body) patch.note      = String(body.note      ?? '').trim() || null;
 
   if ('mobile' in body) {
     const mobile = String(body.mobile ?? '').replace(/\D/g, '');
@@ -69,27 +69,23 @@ export async function PATCH(request, { params }) {
   }
 
   try {
-    return NextResponse.json(updateHouse(id, patch));
+    return NextResponse.json(await updateHouse(id, patch));
   } catch (error) {
-    if (String(error.message).includes('UNIQUE')) {
-      return NextResponse.json({ error: 'यह मकान संख्या इस पेज पर पहले से मौजूद है' }, { status: 409 });
-    }
     console.error('[PATCH /api/houses/:id]', error);
     return NextResponse.json({ error: 'घर अपडेट नहीं हुआ' }, { status: 500 });
   }
 }
 
-/** घर हटाएँ (screen 4, item 8) — soft delete. */
 export async function DELETE(request, { params }) {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
-  const denied = guardHouse(params.id, viewer);
+  const denied = await guardHouse(params.id, viewer);
   if (denied) return denied;
   const id = Number(params.id);
 
   try {
-    softDeleteHouse(id);
+    await softDeleteHouse(id);
     return NextResponse.json({ id, deleted: true });
   } catch (error) {
     console.error('[DELETE /api/houses/:id]', error);

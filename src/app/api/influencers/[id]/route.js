@@ -1,17 +1,16 @@
 import { NextResponse } from 'next/server';
-import { updateInfluencer, deleteInfluencer } from '@server/db/influencers';
+import { updateInfluencer, deleteInfluencer } from '@server/db/houses';
 import { apiViewer, unauthorized } from '@server/auth';
 import { guardInfluencer } from '@server/guards';
 
 export const dynamic = 'force-dynamic';
 
 export async function PATCH(request, { params }) {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
-  const denied = guardInfluencer(params.id, viewer);
+  const denied = await guardInfluencer(params.id, viewer);
   if (denied) return denied;
-  const id = Number(params.id);
 
   let body;
   try {
@@ -39,9 +38,8 @@ export async function PATCH(request, { params }) {
   }
   if ('mobile' in body) {
     const mobile = String(body.mobile ?? '').replace(/\D/g, '');
-    if (mobile && mobile.length !== 10) {
+    if (mobile && mobile.length !== 10)
       return NextResponse.json({ error: 'मोबाइल नंबर 10 अंकों का हो' }, { status: 400 });
-    }
     patch.mobile = mobile || null;
   }
   for (const field of ['position', 'address']) {
@@ -49,7 +47,7 @@ export async function PATCH(request, { params }) {
   }
 
   try {
-    return NextResponse.json(updateInfluencer(id, patch));
+    return NextResponse.json(await updateInfluencer(params.id, patch));
   } catch (error) {
     console.error('[PATCH /api/influencers/:id]', error);
     return NextResponse.json({ error: 'अपडेट नहीं हुआ' }, { status: 500 });
@@ -57,16 +55,15 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const viewer = apiViewer();
+  const viewer = await apiViewer();
   if (!viewer) return unauthorized();
 
-  const denied = guardInfluencer(params.id, viewer);
+  const denied = await guardInfluencer(params.id, viewer);
   if (denied) return denied;
-  const id = Number(params.id);
 
   try {
-    deleteInfluencer(id);
-    return NextResponse.json({ id, deleted: true });
+    await deleteInfluencer(params.id);
+    return NextResponse.json({ id: params.id, deleted: true });
   } catch (error) {
     console.error('[DELETE /api/influencers/:id]', error);
     return NextResponse.json({ error: 'हटाया नहीं गया' }, { status: 500 });

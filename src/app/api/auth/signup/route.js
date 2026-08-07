@@ -56,8 +56,8 @@ export async function POST(request) {
   try {
     const account = await createAccount(phone, password);
     // The bootstrap account is unrestricted and has no user row to read.
-    const { token, expiresAt } = createSession(account, []);
-    cookies().set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
+    const { token, expiresAt } = await createSession(account, []);
+    (await cookies()).set(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
     return NextResponse.json({ phone: account.phone }, { status: 201 });
   } catch (error) {
     console.error('[POST /api/auth/signup]', error.message);

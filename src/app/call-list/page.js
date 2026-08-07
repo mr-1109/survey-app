@@ -4,6 +4,6 @@ import { CallList } from '@features/call-list';
 export const dynamic = 'force-dynamic';
 
 export default function CallListPage() {
-  requireAccount();
+  await requireAccount();
   return <CallList />;
 }
