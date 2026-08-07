@@ -32,9 +32,10 @@ export default function AppChrome({ title, subHeader, children, wide = false, bg
         <AppBar position="static" elevation={0} sx={{ bgcolor: colors.orange }}>
           {/* px must be >= 12px: edge="start"/"end" apply a -12px margin, and
               anything less pushes the icon buttons past the viewport. */}
-          <Toolbar variant="dense" sx={{ minHeight: 52, px: 1.5 }}>
+          <Toolbar variant="dense" sx={{ position: 'relative', minHeight: 52, px: 1.5 }}>
+            {/* Left: back button or hamburger */}
             {backTo ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', mr: 0.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', zIndex: 1 }}>
                 <IconButton
                   edge="start"
                   onClick={() => router.push(backTo)}
@@ -63,22 +64,37 @@ export default function AppChrome({ title, subHeader, children, wide = false, bg
               </IconButton>
             )}
 
-            <Typography sx={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#fff' }}>
+            {/* Title — absolutely centered so it stays in the middle regardless of left/right content widths */}
+            <Typography
+              sx={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                textAlign: 'center',
+                fontSize: 14,
+                fontWeight: 600,
+                color: '#fff',
+                pointerEvents: 'none',
+                px: 7,
+              }}
+            >
               {title}
             </Typography>
 
-            {actions}
-
-            {!backTo && (
-              <IconButton
-                edge="end"
-                onClick={() => router.push('/dashboard')}
-                sx={{ color: '#fff' }}
-                aria-label="होम"
-              >
-                <HomeIcon />
-              </IconButton>
-            )}
+            {/* Right: actions + home */}
+            <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', zIndex: 1 }}>
+              {actions}
+              {!backTo && (
+                <IconButton
+                  edge="end"
+                  onClick={() => router.push('/dashboard')}
+                  sx={{ color: '#fff' }}
+                  aria-label="होम"
+                >
+                  <HomeIcon />
+                </IconButton>
+              )}
+            </Box>
           </Toolbar>
         </AppBar>
         {subHeader}

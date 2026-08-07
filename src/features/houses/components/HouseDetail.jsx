@@ -22,7 +22,6 @@ import RadioGroup from '@mui/material/RadioGroup';
 import Typography from '@mui/material/Typography';
 import CallOutlinedIcon from '@mui/icons-material/CallOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import HowToVoteOutlinedIcon from '@mui/icons-material/HowToVoteOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
@@ -33,7 +32,7 @@ import SummarizeOutlinedIcon from '@mui/icons-material/SummarizeOutlined';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import AppChrome from '@shared/layouts/AppChrome';
 import { colors } from '@shared/theme/colors';
-import { fetchHouse, deleteHouse, fetchNeighborHouses } from '../api';
+import { fetchHouse, fetchNeighborHouses } from '../api';
 import {
   STATUS_LABELS,
   POLITICAL_PARTY_OPTIONS,
@@ -329,10 +328,6 @@ export default function HouseDetail({ houseId }) {
   /* ── navigation ── */
   const [nextSuccessOpen, setNextSuccessOpen] = useState(false);
 
-  /* ── delete ── */
-  const [deleteConfirm,  setDeleteConfirm]  = useState(false);
-  const [deletingHouse,  setDeletingHouse]  = useState(false);
-  const [deleteHouseErr, setDeleteHouseErr] = useState(null);
 
   /* ── ⋮ anchor ── */
   const [moreAnchor, setMoreAnchor] = useState(null);
@@ -368,18 +363,6 @@ export default function HouseDetail({ houseId }) {
   const { ward }      = parseAreaId(house?.area_id);
   const areaLabel     = [ward ? `वार्ड ${ward}` : null, house?.area].filter(Boolean).join(', ');
 
-  /* ── delete ── */
-  async function handleDeleteHouse() {
-    setDeletingHouse(true);
-    setDeleteHouseErr(null);
-    try {
-      await deleteHouse(houseId);
-      router.push('/houses/list');
-    } catch (e) {
-      setDeleteHouseErr(e.message);
-      setDeletingHouse(false);
-    }
-  }
 
   /* ── AppChrome right actions: status chip + ⋮ ── */
   const headerActions = house ? (
@@ -557,11 +540,6 @@ export default function HouseDetail({ houseId }) {
           <WhatsAppIcon sx={{ fontSize: 18, mr: 1.25, color: '#25d366' }} />
           WhatsApp करें
         </MenuItem>
-        <Divider />
-        <MenuItem onClick={() => { setMoreAnchor(null); setDeleteConfirm(true); }} sx={{ color: '#c62828' }}>
-          <DeleteOutlineIcon sx={{ fontSize: 18, mr: 1.25 }} />
-          घर हटाएँ
-        </MenuItem>
       </Menu>
 
       {/* ── Section dialogs ─────────────────────────────────────── */}
@@ -692,20 +670,6 @@ export default function HouseDetail({ houseId }) {
         </DialogActions>
       </Dialog>
 
-      {/* ── Delete confirm ──────────────────────────────────────── */}
-      <Dialog open={deleteConfirm} onClose={() => setDeleteConfirm(false)} maxWidth="xs" fullWidth>
-        <DialogContent sx={{ pt: 3 }}>
-          <Typography sx={{ fontSize: 14, fontWeight: 700, mb: 1 }}>घर हटाएँ?</Typography>
-          <Typography sx={{ fontSize: 12.5, color: colors.textMuted }}>यह घर सूची से हटा दिया जाएगा।</Typography>
-          {deleteHouseErr && <Alert severity="error" sx={{ mt: 1 }}>{deleteHouseErr}</Alert>}
-        </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
-          <Button onClick={() => setDeleteConfirm(false)} fullWidth sx={{ textTransform: 'none' }}>नहीं</Button>
-          <Button onClick={handleDeleteHouse} disabled={deletingHouse} fullWidth variant="contained" color="error" sx={{ textTransform: 'none' }}>
-            {deletingHouse ? 'हटाया जा रहा…' : 'हाँ, हटाएँ'}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </AppChrome>
   );
 }

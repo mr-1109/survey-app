@@ -15,6 +15,25 @@ import CloseIcon from '@mui/icons-material/Close';
 import { colors } from '@shared/theme/colors';
 import { saveSurvey } from '../../api';
 
+function parseDev(raw) {
+  if (Array.isArray(raw)) return raw;
+  try { return JSON.parse(raw || '[]'); } catch { return []; }
+}
+
+function buildSurveyPayload(survey, overrides) {
+  return {
+    political_party:       survey?.political_party       ?? '',
+    political_party_other: survey?.political_party_other ?? '',
+    development_works:     parseDev(survey?.development_works),
+    development_other:     survey?.development_other     ?? '',
+    cm_satisfaction:       survey?.cm_satisfaction       ?? '',
+    colony_workers:        survey?.colony_workers        ?? '',
+    block_workers:         survey?.block_workers         ?? '',
+    remarks:               survey?.remarks               ?? '',
+    ...overrides,
+  };
+}
+
 const CINPUT = {
   border: '1px solid #ccc',
   borderRadius: 4,
@@ -64,10 +83,7 @@ export default function WorkersEditDialog({ open, onClose, onSaved, houseId, typ
     setError(null);
     try {
       const cleaned = names.map((n) => n.trim()).filter(Boolean);
-      await saveSurvey(houseId, {
-        ...(survey ?? {}),
-        [field]: cleaned.join(', '),
-      });
+      await saveSurvey(houseId, buildSurveyPayload(survey, { [field]: cleaned.join(', ') }));
       onSaved();
       onClose();
     } catch (e) {

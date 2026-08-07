@@ -14,6 +14,11 @@ import CloseIcon from '@mui/icons-material/Close';
 import { colors } from '@shared/theme/colors';
 import { saveSurvey } from '../../api';
 
+function parseDev(raw) {
+  if (Array.isArray(raw)) return raw;
+  try { return JSON.parse(raw || '[]'); } catch { return []; }
+}
+
 const MAX = 500;
 
 export default function RemarksDialog({ open, onClose, onSaved, houseId, survey }) {
@@ -32,8 +37,14 @@ export default function RemarksDialog({ open, onClose, onSaved, houseId, survey 
     setError(null);
     try {
       await saveSurvey(houseId, {
-        ...(survey ?? {}),
-        remarks: text.trim(),
+        political_party:       survey?.political_party       ?? '',
+        political_party_other: survey?.political_party_other ?? '',
+        development_works:     parseDev(survey?.development_works),
+        development_other:     survey?.development_other     ?? '',
+        cm_satisfaction:       survey?.cm_satisfaction       ?? '',
+        colony_workers:        survey?.colony_workers        ?? '',
+        block_workers:         survey?.block_workers         ?? '',
+        remarks:               text.trim(),
       });
       onSaved();
       onClose();
