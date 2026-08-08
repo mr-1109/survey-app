@@ -47,7 +47,7 @@ export async function PATCH(request, { params }) {
     patch.mobile = mobile || null;
   }
 
-  for (const field of ['relation', 'relative_name', 'occupation', 'voter_category', 'education', 'marital_status', 'note', 'epic', 'dependent_on']) {
+  for (const field of ['relation', 'relative_name', 'caste', 'occupation', 'voter_category', 'education', 'marital_status', 'note', 'epic', 'dependent_on']) {
     if (field in body) patch[field] = String(body[field] ?? '').trim() || null;
   }
   if ('is_head'     in body) patch.is_head     = body.is_head     ? 1 : 0;

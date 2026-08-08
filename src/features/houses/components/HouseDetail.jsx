@@ -12,24 +12,17 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import Divider from '@mui/material/Divider';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import Typography from '@mui/material/Typography';
-import CallOutlinedIcon from '@mui/icons-material/CallOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import HowToVoteOutlinedIcon from '@mui/icons-material/HowToVoteOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
 import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined';
-import SummarizeOutlinedIcon from '@mui/icons-material/SummarizeOutlined';
-import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import AppChrome from '@shared/layouts/AppChrome';
 import { colors } from '@shared/theme/colors';
 import { fetchHouse, fetchNeighborHouses } from '../api';
@@ -41,12 +34,9 @@ import {
   genderLabel,
 } from '../constants';
 import FamilyEditDialog      from './dialogs/FamilyEditDialog';
-import InfluencersEditDialog  from './dialogs/InfluencersEditDialog';
-import WorkersEditDialog      from './dialogs/WorkersEditDialog';
-import RemarksDialog          from './dialogs/RemarksDialog';
-import HouseInfoDialog        from './dialogs/HouseInfoDialog';
-import SurveyDialog           from './dialogs/SurveyDialog';
-import SummaryDialog          from './dialogs/SummaryDialog';
+import InfluencersEditDialog from './dialogs/InfluencersEditDialog';
+import WorkersEditDialog     from './dialogs/WorkersEditDialog';
+import SurveyDialog          from './dialogs/SurveyDialog';
 
 /* ─── Status colours ───────────────────────────────────────────── */
 const STATUS_COLOR = {
@@ -314,24 +304,15 @@ export default function HouseDetail({ houseId }) {
   const [neighbors, setNeighbors] = useState({ prev: null, next: null });
 
   /* ── section edit dialogs ── */
-  const [familyEditOpen,       setFamilyEditOpen]       = useState(false);
-  const [influencersEditOpen,  setInfluencersEditOpen]  = useState(false);
-  const [bjpWorkersOpen,       setBjpWorkersOpen]       = useState(false);
-  const [congressWorkersOpen,  setCongressWorkersOpen]  = useState(false);
-  const [remarksOpen,          setRemarksOpen]          = useState(false);
-
-  /* ── ⋮ menu dialogs ── */
-  const [houseInfoOpen, setHouseInfoOpen] = useState(false);
-  const [surveyOpen,    setSurveyOpen]    = useState(false);
-  const [summaryOpen,   setSummaryOpen]   = useState(false);
-  const [notesOpen,     setNotesOpen]     = useState(false);
+  const [familyEditOpen,      setFamilyEditOpen]      = useState(false);
+  const [influencersEditOpen, setInfluencersEditOpen] = useState(false);
+  const [bjpWorkersOpen,      setBjpWorkersOpen]      = useState(false);
+  const [congressWorkersOpen, setCongressWorkersOpen] = useState(false);
+  const [surveyOpen,          setSurveyOpen]          = useState(false);
+  const [notesOpen,           setNotesOpen]           = useState(false);
 
   /* ── navigation ── */
   const [nextSuccessOpen, setNextSuccessOpen] = useState(false);
-
-
-  /* ── ⋮ anchor ── */
-  const [moreAnchor, setMoreAnchor] = useState(null);
 
   /* ── load data ── */
   const load = useCallback(() => {
@@ -367,16 +348,11 @@ export default function HouseDetail({ houseId }) {
 
   /* ── AppChrome right actions: status chip + ⋮ ── */
   const headerActions = house ? (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-      <Chip
-        label={statusLabel}
-        size="small"
-        sx={{ bgcolor: statusColor.bg, color: statusColor.fg, fontWeight: 700, fontSize: 11, height: 22, px: 0.25 }}
-      />
-      <IconButton onClick={(e) => setMoreAnchor(e.currentTarget)} sx={{ color: '#fff' }} size="small" aria-label="अधिक">
-        <MoreVertIcon />
-      </IconButton>
-    </Box>
+    <Chip
+      label={statusLabel}
+      size="small"
+      sx={{ bgcolor: statusColor.bg, color: statusColor.fg, fontWeight: 700, fontSize: 11, height: 22, px: 0.25 }}
+    />
   ) : null;
 
   /* ── Sub-header info strip ── */
@@ -461,7 +437,7 @@ export default function HouseDetail({ houseId }) {
               <SectionHead
                 number="5"
                 title="उपरोक्त परिवार के संबंध में सर्वेक्षण कर्ता की टिप्पणी"
-                onEdit={() => setRemarksOpen(true)}
+                onEdit={() => setSurveyOpen(true)}
               />
               <SurveyDisplay survey={survey} devWorks={devWorks} />
               {survey?.remarks && (
@@ -518,30 +494,6 @@ export default function HouseDetail({ houseId }) {
         </Box>
       )}
 
-      {/* ── ⋮ More menu ─────────────────────────────────────────── */}
-      <Menu anchorEl={moreAnchor} open={Boolean(moreAnchor)} onClose={() => setMoreAnchor(null)}>
-        <MenuItem onClick={() => { setMoreAnchor(null); setHouseInfoOpen(true); }}>
-          <EditOutlinedIcon sx={{ fontSize: 18, mr: 1.25, color: colors.orange }} />
-          घर की जानकारी संपादित करें
-        </MenuItem>
-        <MenuItem onClick={() => { setMoreAnchor(null); setSurveyOpen(true); }}>
-          <EditOutlinedIcon sx={{ fontSize: 18, mr: 1.25, color: colors.blue }} />
-          पूर्ण सर्वेक्षण संपादित करें
-        </MenuItem>
-        <MenuItem onClick={() => { setMoreAnchor(null); setSummaryOpen(true); }}>
-          <SummarizeOutlinedIcon sx={{ fontSize: 18, mr: 1.25, color: colors.blue }} />
-          सारांश देखें
-        </MenuItem>
-        <Divider />
-        <MenuItem disabled={!mobile} onClick={() => { setMoreAnchor(null); if (mobile) window.location.href = `tel:${mobile}`; }}>
-          <CallOutlinedIcon sx={{ fontSize: 18, mr: 1.25, color: colors.orange }} />
-          कॉल करें
-        </MenuItem>
-        <MenuItem disabled={!mobile} onClick={() => { setMoreAnchor(null); if (mobile) window.open(`https://wa.me/91${mobile}`, '_blank'); }}>
-          <WhatsAppIcon sx={{ fontSize: 18, mr: 1.25, color: '#25d366' }} />
-          WhatsApp करें
-        </MenuItem>
-      </Menu>
 
       {/* ── Section dialogs ─────────────────────────────────────── */}
       {data && (
@@ -580,35 +532,11 @@ export default function HouseDetail({ houseId }) {
             survey={survey}
           />
 
-          <RemarksDialog
-            open={remarksOpen}
-            onClose={() => setRemarksOpen(false)}
-            onSaved={load}
-            houseId={houseId}
-            survey={survey}
-          />
-
-          {/* ⋮ menu dialogs */}
-          <HouseInfoDialog
-            open={houseInfoOpen}
-            onClose={() => setHouseInfoOpen(false)}
-            onSaved={load}
-            houseId={houseId}
-            house={house}
-            members={data.members}
-          />
           <SurveyDialog
             open={surveyOpen}
             onClose={() => setSurveyOpen(false)}
             onSaved={load}
             houseId={houseId}
-          />
-          <SummaryDialog
-            open={summaryOpen}
-            onClose={() => setSummaryOpen(false)}
-            onSaved={load}
-            houseId={houseId}
-            data={data}
           />
         </>
       )}

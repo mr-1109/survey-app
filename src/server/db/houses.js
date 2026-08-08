@@ -461,7 +461,7 @@ export async function getHouse(id) {
 
   // Fetch EROLL members for this house (source of truth)
   const [erollRows] = await query(
-    `SELECT VLISTID, VNAME, FNAME, RELATION, SEX, AGE, PHONE1, IDCARD_NO
+    `SELECT VLISTID, VNAME, FNAME, RELATION, SEX, AGE, PHONE1, IDCARD_NO, MAINCAST
      FROM EROLL_NN055
      WHERE AREA_ID = ? AND HNO = ?
      ORDER BY VLISTID`,
@@ -502,6 +502,7 @@ export async function getHouse(id) {
         age:           edits.age           ?? r.AGE,
         relation:      edits.relation      ?? r.RELATION ?? null,
         relative_name: edits.relative_name ?? r.FNAME,
+        caste:         edits.caste         ?? r.MAINCAST  ?? null,
         mobile:        edits.mobile        ?? r.PHONE1   ?? null,
         epic:          edits.epic          ?? r.IDCARD_NO ?? null,
         education:     edits.education     ?? null,
@@ -522,6 +523,7 @@ export async function getHouse(id) {
       age:           m.age           ?? null,
       relation:      m.relation      ?? null,
       relative_name: m.relativeName  ?? null,
+      caste:         m.caste         ?? null,
       mobile:        m.mobile        ?? null,
       epic:          m.epic          ?? null,
       education:     m.education     ?? null,
@@ -757,6 +759,7 @@ export async function updateMember(compositeId, patch) {
     if ('age'           in patch) m.age           = patch.age ? Number(foldDigits(String(patch.age))) : null;
     if ('relation'      in patch) m.relation      = patch.relation      ?? null;
     if ('relative_name' in patch) m.relativeName  = patch.relative_name ?? null;
+    if ('caste'         in patch) m.caste         = patch.caste         ?? null;
     if ('mobile'        in patch) m.mobile        = foldDigits(patch.mobile ?? '') || null;
     if ('epic'          in patch) m.epic          = patch.epic          ?? null;
     if ('education'     in patch) m.education     = patch.education     ?? null;
@@ -774,6 +777,7 @@ export async function updateMember(compositeId, patch) {
       age:           'age',
       relation:      'relation',
       relative_name: 'relative_name',
+      caste:         'caste',
       mobile:        'mobile',
       epic:          'epic',
       education:     'education',

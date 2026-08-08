@@ -14,7 +14,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { colors } from '@shared/theme/colors';
 import { updateMember, addMember } from '../../api';
 
-/* ── Cell styles ── */
+/* ── Styles ── */
 const CINPUT = {
   border: '1px solid #ccc',
   borderRadius: 4,
@@ -27,9 +27,16 @@ const CINPUT = {
   outline: 'none',
   boxSizing: 'border-box',
 };
+const CREADONLY = {
+  ...CINPUT,
+  backgroundColor: '#f7f7f7',
+  border: '1px solid #e8e8e8',
+  color: '#555',
+  cursor: 'default',
+  userSelect: 'none',
+};
 const CINPUT_SM = { ...CINPUT, padding: '4px 6px', fontSize: 12 };
-const CSELECT   = { ...CINPUT, cursor: 'pointer', paddingRight: 4 };
-const CSELECT_SM = { ...CINPUT_SM, cursor: 'pointer', paddingRight: 4 };
+const CSELECT   = { ...CINPUT, cursor: 'pointer' };
 
 const TH = {
   background: colors.orangeTint,
@@ -49,115 +56,75 @@ const TD = {
   verticalAlign: 'middle',
 };
 
-const GENDER_OPTS = [
-  { value: 'M', label: 'पुरुष' },
-  { value: 'F', label: 'महिला' },
-  { value: 'O', label: 'अन्य'  },
-];
 const VOTER_OPTS = ['HEAD', 'अधिवासित'];
+
+const GENDER_LABEL = { M: 'पुरुष', F: 'महिला', O: 'अन्य', पुरुष: 'पुरुष', महिला: 'महिला', अन्य: 'अन्य' };
+const GENDER_OPTS  = [{ value: 'M', label: 'पुरुष' }, { value: 'F', label: 'महिला' }, { value: 'O', label: 'अन्य' }];
 
 function toStr(v) { return v == null ? '' : String(v); }
 
-/** eroll stores "पुरुष"/"महिला"; API expects M/F/O */
 function normalizeGender(g) {
   const map = { पुरुष: 'M', महिला: 'F', अन्य: 'O', M: 'M', F: 'F', O: 'O' };
   return map[g] ?? 'M';
 }
 
-/* Compact name+age+gender cell ─ used for both existing & extra rows */
-function NameAgeGenderCell({ name, age, gender, onName, onAge, onGender, extraRow = false }) {
+/* Read-only name+age/gender display cell */
+function NameCell({ m }) {
+  const gLabel = GENDER_LABEL[m.gender] ?? m.gender ?? '—';
   return (
-    <div>
-      <input
-        style={{ ...CINPUT, marginBottom: 3 }}
-        value={name}
-        onChange={(e) => onName(e.target.value)}
-        placeholder={extraRow ? '(अतिरिक्त सदस्य)' : 'नाम'}
-      />
-      <div style={{ display: 'flex', gap: 3 }}>
-        <input
-          style={{ ...CINPUT_SM, width: 52, textAlign: 'center' }}
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          maxLength={3}
-          value={age}
-          onChange={(e) => onAge(e.target.value.replace(/\D/g, '').slice(0, 3))}
-          placeholder="आयु"
-        />
-        <select
-          style={{ ...CSELECT_SM, flex: 1 }}
-          value={gender}
-          onChange={(e) => onGender(e.target.value)}
-        >
-          {GENDER_OPTS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+    <div style={CREADONLY}>
+      <div style={{ fontWeight: 600, marginBottom: 2 }}>{m.name || '—'}</div>
+      <div style={{ fontSize: 10.5, color: '#888' }}>
+        {m.age ?? '—'} / {gLabel}
       </div>
     </div>
   );
 }
 
-export default function FamilyEditDialog({ open, onClose, onSaved, houseId, members, house }) {
+export default function FamilyEditDialog({ open, onClose, onSaved, houseId, members }) {
   const [rows, setRows]     = useState([]);
-  const [extra, setExtra]   = useState({ name: '', age: '', gender: 'M', relName: '', mobile: '', occ: '', isHead: false });
+  const [extra, setExtra]   = useState({ name: '', age: '', gender: 'M', relName: '', caste: '', mobile: '', occ: '', isHead: false });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState(null);
 
-  /* ── init rows ── */
+  /* init rows from members */
   useEffect(() => {
     if (!open) return;
     setRows(
       (members ?? [])
         .filter((m) => !m.is_deleted)
         .map((m) => ({
-          id:      m.id,
-          name:    toStr(m.name),
-          age:     m.age != null ? String(m.age) : '',
-          gender:  normalizeGender(m.gender),
-          relName: toStr(m.relative_name),
-          mobile:  toStr(m.mobile),
-          occ:     toStr(m.occupation),
-          isHead:  m.is_head === 1,
-          _orig:   m,
+          id:     m.id,
+          caste:  toStr(m.caste),
+          mobile: toStr(m.mobile),
+          occ:    toStr(m.occupation),
+          isHead: m.is_head === 1,
+          _orig:  m,
         })),
     );
-    setExtra({ name: '', age: '', gender: 'M', relName: '', mobile: '', occ: '', isHead: false });
+    setExtra({ name: '', age: '', gender: 'M', relName: '', caste: '', mobile: '', occ: '', isHead: false });
     setError(null);
   }, [open, members]);
 
-  /* ── field updater ── */
   function upd(i, field, value) {
     setRows((prev) => {
       const next = prev.map((r, j) => j === i ? { ...r, [field]: value } : r);
-      if (field === 'isHead' && value) {
+      if (field === 'isHead' && value)
         return next.map((r, j) => j === i ? r : { ...r, isHead: false });
-      }
       return next;
     });
   }
 
-  /* ── save ── */
   async function save() {
-    /* client-side name validation */
-    for (const row of rows) {
-      if (row.name.trim().length < 2)
-        return setError(`नाम कम से कम 2 अक्षर का हो (पंक्ति ${rows.indexOf(row) + 1})`);
-    }
-
     setSaving(true);
     setError(null);
     try {
       const calls = rows.map((row) =>
         updateMember(row.id, {
-          name:          row.name.trim() || undefined,
-          age:           row.age !== '' ? Number(row.age) : null,
-          gender:        row.gender || null,
-          relative_name: row.relName || null,
-          mobile:        row.mobile  || null,
-          occupation:    row.occ     || null,
-          is_head:       row.isHead  ? 1 : 0,
+          caste:      row.caste  || null,
+          mobile:     row.mobile || null,
+          occupation: row.occ   || null,
+          is_head:    row.isHead ? 1 : 0,
         }),
       );
 
@@ -168,6 +135,7 @@ export default function FamilyEditDialog({ open, onClose, onSaved, houseId, memb
             age:           extra.age !== '' ? Number(extra.age) : null,
             gender:        extra.gender || 'M',
             relative_name: extra.relName || null,
+            caste:         extra.caste   || null,
             mobile:        extra.mobile  || null,
             occupation:    extra.occ     || null,
             is_head:       extra.isHead  ? 1 : 0,
@@ -188,13 +156,11 @@ export default function FamilyEditDialog({ open, onClose, onSaved, houseId, memb
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" scroll="paper"
       PaperProps={{ sx: { maxHeight: '90vh' } }}>
-      <DialogTitle
-        sx={{
-          fontSize: 15, fontWeight: 700, color: colors.orange,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          pb: 1, borderBottom: `1px solid ${colors.border}`,
-        }}
-      >
+      <DialogTitle sx={{
+        fontSize: 15, fontWeight: 700, color: colors.orange,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        pb: 1, borderBottom: `1px solid ${colors.border}`,
+      }}>
         परिवार विवरण संपादित करें
         <IconButton onClick={onClose} size="small"><CloseIcon fontSize="small" /></IconButton>
       </DialogTitle>
@@ -206,16 +172,16 @@ export default function FamilyEditDialog({ open, onClose, onSaved, houseId, memb
           </Box>
         ) : (
           <Box sx={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', minWidth: 620, borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', minWidth: 580, borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
                   <th style={{ ...TH, width: 28, textAlign: 'center' }}>{'क्र.\nसं.'}</th>
-                  <th style={{ ...TH, minWidth: 120 }}>{'नाम\n(आयु / लिंग)'}</th>
+                  <th style={{ ...TH, minWidth: 110 }}>{'नाम\n(आयु / लिंग)'}</th>
                   <th style={TH}>{'पिता / पति\nका नाम'}</th>
-                  <th style={{ ...TH, width: 75 }}>जाति</th>
-                  <th style={{ ...TH, width: 90 }}>मोबाइल</th>
+                  <th style={{ ...TH, width: 80 }}>जाति</th>
+                  <th style={{ ...TH, width: 95 }}>मोबाइल</th>
                   <th style={TH}>व्यवसाय / पता</th>
-                  <th style={{ ...TH, width: 90 }}>{'मतदाता\nश्रेणी'}</th>
+                  <th style={{ ...TH, width: 95 }}>{'मतदाता\nश्रेणी'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -223,23 +189,17 @@ export default function FamilyEditDialog({ open, onClose, onSaved, houseId, memb
                   <tr key={row.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
                     <td style={{ ...TD, textAlign: 'center', fontSize: 12 }}>{i + 1}</td>
 
+                    {/* read-only */}
+                    <td style={TD}><NameCell m={row._orig} /></td>
+
+                    {/* read-only */}
                     <td style={TD}>
-                      <NameAgeGenderCell
-                        name={row.name}    onName={(v)  => upd(i, 'name', v)}
-                        age={row.age}      onAge={(v)   => upd(i, 'age', v)}
-                        gender={row.gender} onGender={(v) => upd(i, 'gender', v)}
-                      />
+                      <div style={CREADONLY}>{row._orig.relative_name || '—'}</div>
                     </td>
 
+                    {/* editable */}
                     <td style={TD}>
-                      <input style={CINPUT} value={row.relName} onChange={(e) => upd(i, 'relName', e.target.value)} placeholder="पिता / पति का नाम" />
-                    </td>
-
-                    {/* caste — house level, display only */}
-                    <td style={TD}>
-                      <div style={{ ...CINPUT, backgroundColor: '#f7f7f7', border: '1px solid #e8e8e8', color: '#888', cursor: 'default' }}>
-                        {house?.caste || '—'}
-                      </div>
+                      <input style={CINPUT} value={row.caste} onChange={(e) => upd(i, 'caste', e.target.value)} placeholder="जाति" />
                     </td>
 
                     <td style={TD}>
@@ -269,17 +229,24 @@ export default function FamilyEditDialog({ open, onClose, onSaved, houseId, memb
                   </tr>
                 ))}
 
-                {/* Extra row ── */}
+                {/* Extra new-member row — all fields editable */}
                 <tr style={{ background: '#fffde7' }}>
                   <td style={{ ...TD, textAlign: 'center', fontSize: 11, color: '#aaa' }}>{rows.length + 1}</td>
 
                   <td style={TD}>
-                    <NameAgeGenderCell
-                      extraRow
-                      name={extra.name}     onName={(v)   => setExtra((p) => ({ ...p, name: v }))}
-                      age={extra.age}       onAge={(v)    => setExtra((p) => ({ ...p, age: v }))}
-                      gender={extra.gender} onGender={(v) => setExtra((p) => ({ ...p, gender: v }))}
-                    />
+                    <input style={{ ...CINPUT, marginBottom: 3 }} value={extra.name} onChange={(e) => setExtra((p) => ({ ...p, name: e.target.value }))} placeholder="(अतिरिक्त सदस्य)" />
+                    <div style={{ display: 'flex', gap: 3 }}>
+                      <input
+                        style={{ ...CINPUT_SM, width: 52, textAlign: 'center' }}
+                        type="text" inputMode="numeric" pattern="[0-9]*" maxLength={3}
+                        value={extra.age}
+                        onChange={(e) => setExtra((p) => ({ ...p, age: e.target.value.replace(/\D/g, '').slice(0, 3) }))}
+                        placeholder="आयु"
+                      />
+                      <select style={{ ...CINPUT_SM, cursor: 'pointer', flex: 1 }} value={extra.gender} onChange={(e) => setExtra((p) => ({ ...p, gender: e.target.value }))}>
+                        {GENDER_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    </div>
                   </td>
 
                   <td style={TD}>
@@ -287,9 +254,7 @@ export default function FamilyEditDialog({ open, onClose, onSaved, houseId, memb
                   </td>
 
                   <td style={TD}>
-                    <div style={{ ...CINPUT, backgroundColor: '#f7f7f7', border: '1px solid #e8e8e8', color: '#888', cursor: 'default' }}>
-                      {house?.caste || '—'}
-                    </div>
+                    <input style={CINPUT} value={extra.caste} onChange={(e) => setExtra((p) => ({ ...p, caste: e.target.value }))} placeholder="जाति" />
                   </td>
 
                   <td style={TD}>
@@ -308,11 +273,7 @@ export default function FamilyEditDialog({ open, onClose, onSaved, houseId, memb
                   </td>
 
                   <td style={TD}>
-                    <select
-                      style={CSELECT}
-                      value={extra.isHead ? 'HEAD' : 'अधिवासित'}
-                      onChange={(e) => setExtra((p) => ({ ...p, isHead: e.target.value === 'HEAD' }))}
-                    >
+                    <select style={CSELECT} value={extra.isHead ? 'HEAD' : 'अधिवासित'} onChange={(e) => setExtra((p) => ({ ...p, isHead: e.target.value === 'HEAD' }))}>
                       {VOTER_OPTS.map((o) => <option key={o} value={o}>{o}</option>)}
                     </select>
                   </td>
