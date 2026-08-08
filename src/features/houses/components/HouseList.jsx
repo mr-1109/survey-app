@@ -24,7 +24,7 @@ export default function HouseList() {
   const searchParams = useSearchParams();
   const [ward, setWard] = useState(searchParams.get('ward') || 'all');
   const [part, setPart] = useState(searchParams.get('part') || 'all');
-  const [status, setStatus] = useState('all');
+  const [status, setStatus] = useState('pending');
   const [q, setQ] = useState('');
   const [wardList, setWardList] = useState([]);
   const [bhagList, setBhagList] = useState([]);
