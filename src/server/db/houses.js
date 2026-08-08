@@ -242,7 +242,7 @@ export async function listHouses({
     LEFT JOIN EROLL_NN055 e ON e.AREA_ID = sd.AREA_ID AND e.HNO = sd.HNO
     ${whereClause}
     GROUP BY sd.ID
-    ORDER BY sd.AREA_ID ASC, CAST(sd.HNO AS UNSIGNED), sd.HNO
+    ORDER BY ${(status === 'partial' || status === 'done') ? 'sd.UPDATED_AT DESC' : 'sd.AREA_ID ASC, CAST(sd.HNO AS UNSIGNED), sd.HNO'}
     LIMIT ? OFFSET ?
   `;
   params.push(capped + 1, Math.max(0, Number(offset) || 0));
